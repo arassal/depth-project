@@ -32,10 +32,10 @@
               </div>
               <div class="metric">
                 <span class="label">Status</span>
-                <span class="value">Running</span>
+                <span class="value">Measured</span>
               </div>
             </div>
-            <p class="footer-note">As of May 6, 2026, the codebase is complete and the NYU-v2 export is still in progress. Performance metrics will populate after the first training run.</p>
+            <p class="footer-note">As of May 6, 2026, the proof-of-concept experiment is complete on a clean NYU-v2 subset. The useful result is that the small fine-tune overfit and underperformed the zero-shot baseline on the held-out test subset.</p>
           </aside>
         </div>
       </header>
@@ -71,15 +71,15 @@
           <div class="timeline">
             <div class="timeline-item">
               <strong><span class="status"><span class="dot ok"></span>Completed</span></strong>
-              Repo creation, dependency install, checkpoint validation, training/eval/plot code, pseudo-label path, and documentation.
+              Repo creation, dependency install, checkpoint validation, training/eval/plot code, pseudo-label path, documentation, subset export, zero-shot eval, fine-tuning, plots, and image galleries.
             </div>
             <div class="timeline-item">
-              <strong><span class="status"><span class="dot warn"></span>Active</span></strong>
-              NYU-v2 dataset acquisition and export into the local folder structure used by the training scripts.
+              <strong><span class="status"><span class="dot warn"></span>Finding</span></strong>
+              The two-epoch fine-tune improved validation metrics but degraded test metrics on the PoC split, which points to overfitting and motivates hyperparameter or dataset-size changes.
             </div>
             <div class="timeline-item">
               <strong><span class="status"><span class="dot pending"></span>Next</span></strong>
-              Baseline fine-tuning, test evaluation, plot generation, and optional self-training comparison.
+              Expand the dataset split or adjust the learning setup before attempting a stronger fine-tuned model for presentation beyond the PoC.
             </div>
           </div>
         </article>
@@ -88,41 +88,40 @@
       <section class="section result-shell">
         <article class="panel">
           <h2>Metrics dashboard</h2>
-          <p>These are the result slots defined by the project and the original slides. They are intentionally blank until the run produces real outputs.</p>
+          <p>These are the actual test results from the completed NYU-v2 subset proof-of-concept run.</p>
           <div class="grid-2">
             <div class="metric">
-              <span class="label">Baseline AbsRel</span>
-              <span class="value">Pending</span>
+              <span class="label">Zero-shot AbsRel</span>
+              <span class="value">0.1467</span>
             </div>
             <div class="metric">
-              <span class="label">Baseline delta1</span>
-              <span class="value">Pending</span>
+              <span class="label">Zero-shot delta1</span>
+              <span class="value">0.8381</span>
             </div>
             <div class="metric">
-              <span class="label">Self-training AbsRel</span>
-              <span class="value">Optional</span>
+              <span class="label">Fine-tuned AbsRel</span>
+              <span class="value">0.1810</span>
             </div>
             <div class="metric">
-              <span class="label">Self-training delta1</span>
-              <span class="value">Optional</span>
+              <span class="label">Fine-tuned delta1</span>
+              <span class="value">0.7163</span>
             </div>
           </div>
           <div class="bar-chart">
             <div class="bar-row"><span>Environment</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>done</strong></div>
-            <div class="bar-row"><span>Dataset prep</span><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><strong>live</strong></div>
-            <div class="bar-row"><span>Training</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><strong>queued</strong></div>
-            <div class="bar-row"><span>Evaluation</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><strong>queued</strong></div>
+            <div class="bar-row"><span>Dataset prep</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>subset done</strong></div>
+            <div class="bar-row"><span>Training</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>done</strong></div>
+            <div class="bar-row"><span>Evaluation</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>done</strong></div>
           </div>
         </article>
         <aside class="result-placeholder">
-          <h3>Result panel area</h3>
-          <p>After the first run, this section should be replaced or supplemented with:</p>
+          <h3>Main conclusion</h3>
+          <p>The fine-tuned checkpoint performed worse than the zero-shot baseline on the held-out test subset. That makes this run a valid proof-of-concept and a useful hyperparameter-analysis artifact, not just a success-only demo.</p>
           <ul class="list">
-            <li>loss vs epoch plot</li>
-            <li>validation AbsRel curve</li>
-            <li>validation delta1 curve</li>
-            <li>per-image AbsRel histogram</li>
-            <li>RGB / ground-truth / prediction / error comparisons</li>
+            <li>validation still improved across epochs</li>
+            <li>test performance dropped after fine-tuning</li>
+            <li>the result suggests overfitting on a small training subset</li>
+            <li>all 59 before/after image panels were saved for inspection</li>
           </ul>
         </aside>
       </section>
@@ -152,7 +151,7 @@ python src/plots.py \
             <li>The repo and training code are real, not mockups</li>
             <li>The dataset workflow is automated</li>
             <li>The testing and explanation artifacts exist outside the repo too</li>
-            <li>The final metric and qualitative slots are already defined and wired into the workflow</li>
+            <li>The final metrics, plots, and before/after images are now generated from a completed run</li>
           </ul>
         </article>
       </section>
@@ -163,12 +162,12 @@ python src/plots.py \
           <p><a href="presentation.html">presentation.html</a></p>
         </article>
         <article class="card">
-          <h3>Open the detailed report</h3>
-          <p><a href="demonstration_report.md">demonstration_report.md</a></p>
+          <h3>Open the before/after gallery</h3>
+          <p><a href="../outputs/predictions/poc_compare_gallery.html">poc_compare_gallery.html</a></p>
         </article>
       </section>
 
-      <p class="footer-note">This page is intentionally honest: it shows a complete project build and a complete results pipeline, while clearly separating implemented infrastructure from metrics that still depend on the live NYU-v2 run.</p>
+      <p class="footer-note">This page is intentionally honest: the zero-shot baseline beat the small fine-tuned model on the held-out subset, and that outcome is exactly the kind of result a credible proof-of-concept presentation should surface.</p>
     </main>
   </body>
 </html>

@@ -11,7 +11,7 @@
     <nav class="slide-nav">
       <div>
         <strong>Depth Anything Demo Deck</strong><br>
-        <span class="status"><span class="dot warn"></span>Results sections are wired; final metrics await NYU-v2 completion</span>
+        <span class="status"><span class="dot ok"></span>PoC results are populated from a completed NYU-v2 subset run</span>
       </div>
       <div class="links">
         <a href="#slide-1">Intro</a>
@@ -198,22 +198,22 @@ python src/prepare_nyu_v2.py \
           <div class="slide-card">
             <div class="kicker">Results Section</div>
             <h2>The pipeline is ready for the results that belong here.</h2>
-            <p>Because the dataset export is still running, these are result slots rather than fabricated numbers. The structure is already defined and matches the original project goals.</p>
+            <p>The proof-of-concept run is complete on a clean NYU-v2 subset. The key result is that the small supervised fine-tune improved validation but hurt held-out test performance, which is useful evidence of overfitting on a small split.</p>
             <div class="pill-row">
-              <span class="pill">Loss vs epoch</span>
-              <span class="pill">Validation AbsRel</span>
-              <span class="pill">Validation delta1</span>
-              <span class="pill">Per-image histogram</span>
-              <span class="pill">RGB / GT / Pred / Error</span>
+              <span class="pill">Zero-shot AbsRel 0.1467</span>
+              <span class="pill">Zero-shot delta1 0.8381</span>
+              <span class="pill">Fine-tuned AbsRel 0.1810</span>
+              <span class="pill">Fine-tuned delta1 0.7163</span>
+              <span class="pill">59 before/after panels</span>
             </div>
           </div>
           <div class="slide-card">
-            <h3>What will be reported</h3>
+            <h3>What was reported</h3>
             <ul class="list">
               <li>Zero-shot baseline before fine-tuning</li>
-              <li>Supervised baseline after NYU-v2 fine-tuning</li>
-              <li>Optional self-training comparison</li>
-              <li>Qualitative failure modes</li>
+              <li>Two-epoch supervised fine-tune on 450 train images</li>
+              <li>Validation improved from epoch 1 to epoch 2</li>
+              <li>Held-out test performance degraded, indicating overfitting on the PoC split</li>
             </ul>
           </div>
         </div>
@@ -230,8 +230,8 @@ python src/prepare_nyu_v2.py \
               <div class="bar-row"><span>Repo</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>100%</strong></div>
               <div class="bar-row"><span>Environment</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>100%</strong></div>
               <div class="bar-row"><span>Code</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>100%</strong></div>
-              <div class="bar-row"><span>Dataset prep</span><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><strong>live</strong></div>
-              <div class="bar-row"><span>Training results</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><strong>pending</strong></div>
+              <div class="bar-row"><span>Dataset prep</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>subset done</strong></div>
+              <div class="bar-row"><span>Training results</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>done</strong></div>
             </div>
           </div>
           <div class="slide-card">
@@ -240,8 +240,8 @@ python src/prepare_nyu_v2.py \
               <li>GitHub repo published</li>
               <li>Desktop testing runbook written</li>
               <li>Demonstration report written</li>
-              <li>NYU-v2 export job active locally</li>
-              <li>Baseline training queued after dataset completion</li>
+              <li>NYU-v2 PoC subset exported and split</li>
+              <li>Zero-shot and fine-tuned test sets rendered to image panels</li>
             </ul>
           </div>
         </div>
@@ -260,6 +260,7 @@ python src/prepare_nyu_v2.py \
             <h3>Open next</h3>
             <ul class="list">
               <li><a href="results.html">Results webpage</a></li>
+              <li><a href="../outputs/predictions/poc_compare_gallery.html">Before/after gallery</a></li>
               <li><a href="demonstration_report.md">Detailed report</a></li>
               <li><a href="https://github.com/arassal/depth-project">GitHub repository</a></li>
             </ul>

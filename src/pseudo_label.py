@@ -15,7 +15,10 @@ from modeling import forward_depth, load_model
 def load_image(path: Path, image_size: int) -> torch.Tensor:
     image = Image.open(path).convert("RGB").resize((image_size, image_size))
     array = np.asarray(image, dtype=np.float32) / 255.0
-    return torch.from_numpy(array).permute(2, 0, 1)
+    tensor = torch.from_numpy(array).permute(2, 0, 1)
+    mean = torch.tensor((0.485, 0.456, 0.406), dtype=torch.float32).view(3, 1, 1)
+    std = torch.tensor((0.229, 0.224, 0.225), dtype=torch.float32).view(3, 1, 1)
+    return (tensor - mean) / std
 
 
 def main() -> None:

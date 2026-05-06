@@ -47,6 +47,8 @@ class DepthDataset(Dataset):
         image_size: int,
         min_depth: float,
         max_depth: float,
+        image_mean: tuple[float, float, float] = (0.485, 0.456, 0.406),
+        image_std: tuple[float, float, float] = (0.229, 0.224, 0.225),
         has_depth: bool = True,
         is_pseudo: bool = False,
     ) -> None:
@@ -54,6 +56,8 @@ class DepthDataset(Dataset):
         self.image_size = image_size
         self.min_depth = min_depth
         self.max_depth = max_depth
+        self.image_mean = torch.tensor(image_mean, dtype=torch.float32).view(3, 1, 1)
+        self.image_std = torch.tensor(image_std, dtype=torch.float32).view(3, 1, 1)
         self.has_depth = has_depth
         self.records = self._load_records(split_file, is_pseudo=is_pseudo)
 
@@ -93,9 +97,12 @@ class DepthDataset(Dataset):
         image_np = np.asarray(image, dtype=np.float32) / 255.0
         image_tensor = torch.from_numpy(image_np).permute(2, 0, 1)
         image_tensor = _resize_tensor(image_tensor, self.image_size, mode="bilinear")
+        rgb_vis = image_tensor.clone()
+        image_tensor = (image_tensor - self.image_mean) / self.image_std
 
         sample: dict[str, torch.Tensor | str | bool] = {
             "pixel_values": image_tensor,
+            "rgb_vis": rgb_vis,
             "sample_id": record.sample_id,
             "is_pseudo": record.is_pseudo,
         }

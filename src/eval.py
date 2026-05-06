@@ -38,17 +38,23 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
     parser.add_argument("--checkpoint", default=None)
+    parser.add_argument("--summary-path", default=None)
+    parser.add_argument("--per-image-path", default=None)
+    parser.add_argument("--preview-dir", default=None)
+    parser.add_argument("--num-preview-samples", type=int, default=None)
     args = parser.parse_args()
 
     config = load_config(args.config)
     device = get_device()
     _, model = load_model(config["model"]["pretrained_name"])
 
-    checkpoint_path = args.checkpoint or config["eval"]["checkpoint"]
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    checkpoint_path = args.checkpoint if args.checkpoint is not None else config["eval"].get("checkpoint")
+    if checkpoint_path and Path(checkpoint_path).exists():
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+        model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
     model.eval()
+    use_amp = device.type == "cuda"
 
     dataset = DepthDataset(
         root=config["data"]["root"],
@@ -56,12 +62,15 @@ def main() -> None:
         image_size=config["model"]["image_size"],
         min_depth=config["data"]["min_depth"],
         max_depth=config["data"]["max_depth"],
+        image_mean=tuple(config["model"].get("image_mean", (0.485, 0.456, 0.406))),
+        image_std=tuple(config["model"].get("image_std", (0.229, 0.224, 0.225))),
     )
     loader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     rows = []
-    preview_dir = Path(config["eval"]["preview_dir"])
+    preview_dir = Path(args.preview_dir or config["eval"]["preview_dir"])
     preview_count = 0
+    preview_limit = args.num_preview_samples if args.num_preview_samples is not None else config["eval"]["num_preview_samples"]
 
     with torch.no_grad():
         for batch in tqdm(loader, desc="eval", leave=False):
@@ -70,31 +79,32 @@ def main() -> None:
             valid_mask = batch["valid_mask"].to(device)
             sample_id = batch["sample_id"][0]
 
-            pred = forward_depth(model, pixel_values)
-            pred = torch.nn.functional.interpolate(
-                pred.unsqueeze(1),
-                size=depth.shape[-2:],
-                mode="bilinear",
-                align_corners=False,
-            ).squeeze(1)
+            with torch.amp.autocast("cuda", enabled=use_amp):
+                pred = forward_depth(model, pixel_values)
+                pred = torch.nn.functional.interpolate(
+                    pred.unsqueeze(1),
+                    size=depth.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                ).squeeze(1)
             aligned = align_scale_and_shift(pred, depth, valid_mask)
 
             sample_abs_rel = abs_rel(aligned, depth, valid_mask).item()
             sample_delta1 = delta1(aligned, depth, valid_mask).item()
             rows.append({"sample_id": sample_id, "abs_rel": sample_abs_rel, "delta1": sample_delta1})
 
-            if preview_count < config["eval"]["num_preview_samples"]:
+            if preview_limit < 0 or preview_count < preview_limit:
                 save_preview(
                     preview_dir,
                     sample_id,
-                    batch["pixel_values"][0],
+                    batch["rgb_vis"][0],
                     depth[0].cpu(),
                     aligned[0].cpu(),
                 )
                 preview_count += 1
 
     df = pd.DataFrame(rows)
-    per_image_path = Path(config["eval"]["per_image_path"])
+    per_image_path = Path(args.per_image_path or config["eval"]["per_image_path"])
     per_image_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(per_image_path, index=False)
 
@@ -103,7 +113,7 @@ def main() -> None:
         "delta1": float(df["delta1"].mean()),
         "num_samples": int(len(df)),
     }
-    write_json(config["eval"]["summary_path"], summary)
+    write_json(args.summary_path or config["eval"]["summary_path"], summary)
     print(summary)
 
 

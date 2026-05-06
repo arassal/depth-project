@@ -45,10 +45,15 @@ def write_manifest(root: Path, split_name: str, rows: list[tuple[str, str]]) -> 
             handle.write(f"{image_rel} {depth_rel}\n")
 
 
-def download_shards(repo_id: str) -> dict[str, list[Path]]:
+def download_shards(repo_id: str, train_shards: int | None, test_shards: int | None) -> dict[str, list[Path]]:
     files = list_repo_files(repo_id, repo_type="dataset")
     train_files = sorted([f for f in files if f.startswith("data/train-") and f.endswith(".tar")])
     val_files = sorted([f for f in files if f.startswith("data/val-") and f.endswith(".tar")])
+
+    if train_shards is not None:
+        train_files = train_files[:train_shards]
+    if test_shards is not None:
+        val_files = val_files[:test_shards]
 
     shard_paths: dict[str, list[Path]] = {"train": [], "test": []}
     for split_name, split_files in [("train", train_files), ("test", val_files)]:
@@ -69,23 +74,35 @@ def iter_samples(shard_paths: list[Path]):
                 yield file_obj.read()
 
 
-def export_dataset(root: Path, val_count: int) -> None:
-    shard_paths = download_shards(DATASET_ID)
-
-    train_samples = list(iter_samples(shard_paths["train"]))
-    test_samples = list(iter_samples(shard_paths["test"]))
-
-    if val_count <= 0 or val_count >= len(train_samples):
-        raise ValueError(f"val_count must be between 1 and {len(train_samples) - 1}")
-
+def export_dataset(
+    root: Path,
+    val_count: int,
+    train_shards: int | None,
+    test_shards: int | None,
+    max_train_samples: int | None,
+    max_test_samples: int | None,
+) -> None:
+    shard_paths = download_shards(DATASET_ID, train_shards=train_shards, test_shards=test_shards)
     train_rows: list[tuple[str, str]] = []
     val_rows: list[tuple[str, str]] = []
     test_rows: list[tuple[str, str]] = []
 
-    split_boundary = len(train_samples) - val_count
-
-    for index, payload in enumerate(tqdm(train_samples, desc="export train+val", leave=False)):
+    train_payloads = iter_samples(shard_paths["train"])
+    buffered_train: list[tuple[np.ndarray, np.ndarray]] = []
+    exported_train = 0
+    train_limit = max_train_samples if max_train_samples is not None else float("inf")
+    for payload in tqdm(train_payloads, desc="export train+val", leave=False):
+        if exported_train >= train_limit:
+            break
         rgb, depth = decode_h5_bytes(payload)
+        buffered_train.append((rgb, depth))
+        exported_train += 1
+
+    if val_count <= 0 or val_count >= len(buffered_train):
+        raise ValueError(f"val_count must be between 1 and {len(buffered_train) - 1}")
+
+    split_boundary = len(buffered_train) - val_count
+    for index, (rgb, depth) in enumerate(buffered_train):
         split_name = "train" if index < split_boundary else "val"
         rels = save_sample(root, split_name, index if split_name == "train" else index - split_boundary, rgb, depth)
         if split_name == "train":
@@ -93,7 +110,10 @@ def export_dataset(root: Path, val_count: int) -> None:
         else:
             val_rows.append(rels)
 
-    for index, payload in enumerate(tqdm(test_samples, desc="export test", leave=False)):
+    test_limit = max_test_samples if max_test_samples is not None else float("inf")
+    for index, payload in enumerate(tqdm(iter_samples(shard_paths["test"]), desc="export test", leave=False)):
+        if index >= test_limit:
+            break
         rgb, depth = decode_h5_bytes(payload)
         test_rows.append(save_sample(root, "test", index, rgb, depth))
 
@@ -115,9 +135,20 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default="/home/alexander/depth-project/data/nyu_v2")
     parser.add_argument("--val-count", type=int, default=512)
+    parser.add_argument("--train-shards", type=int, default=None)
+    parser.add_argument("--test-shards", type=int, default=None)
+    parser.add_argument("--max-train-samples", type=int, default=None)
+    parser.add_argument("--max-test-samples", type=int, default=None)
     args = parser.parse_args()
 
-    export_dataset(Path(args.root), args.val_count)
+    export_dataset(
+        Path(args.root),
+        val_count=args.val_count,
+        train_shards=args.train_shards,
+        test_shards=args.test_shards,
+        max_train_samples=args.max_train_samples,
+        max_test_samples=args.max_test_samples,
+    )
 
 
 if __name__ == "__main__":

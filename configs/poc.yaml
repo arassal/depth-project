@@ -1,0 +1,35 @@
+run_name: poc
+seed: 42
+
+model:
+  pretrained_name: LiheYoung/depth-anything-small-hf
+  image_size: 256
+  image_mean: [0.485, 0.456, 0.406]
+  image_std: [0.229, 0.224, 0.225]
+
+data:
+  root: /home/alexander/depth-project/data/nyu_v2_poc
+  train_split: splits/train.txt
+  val_split: splits/val.txt
+  test_split: splits/test.txt
+  min_depth: 0.001
+  max_depth: 10.0
+
+train:
+  epochs: 2
+  batch_size: 1
+  num_workers: 2
+  learning_rate: 1.0e-5
+  weight_decay: 1.0e-4
+  grad_clip_norm: 1.0
+  log_every: 20
+  val_every_epoch: true
+  save_path: /home/alexander/depth-project/checkpoints/poc_best.pt
+  history_path: /home/alexander/depth-project/outputs/metrics/poc_history.jsonl
+
+eval:
+  checkpoint: /home/alexander/depth-project/checkpoints/poc_best.pt
+  summary_path: /home/alexander/depth-project/outputs/metrics/poc_test_summary.json
+  per_image_path: /home/alexander/depth-project/outputs/metrics/poc_test_per_image.csv
+  preview_dir: /home/alexander/depth-project/outputs/predictions/poc_test
+  num_preview_samples: -1

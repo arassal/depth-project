@@ -24,6 +24,8 @@ def build_loader(config: dict, split_key: str, shuffle: bool) -> DataLoader:
         image_size=model_cfg["image_size"],
         min_depth=data_cfg["min_depth"],
         max_depth=data_cfg["max_depth"],
+        image_mean=tuple(model_cfg.get("image_mean", (0.485, 0.456, 0.406))),
+        image_std=tuple(model_cfg.get("image_std", (0.229, 0.224, 0.225))),
         has_depth=True,
         is_pseudo=False,
     )
@@ -47,6 +49,8 @@ def maybe_build_pseudo_dataset(config: dict) -> DepthDataset | None:
         image_size=config["model"]["image_size"],
         min_depth=data_cfg["min_depth"],
         max_depth=data_cfg["max_depth"],
+        image_mean=tuple(config["model"].get("image_mean", (0.485, 0.456, 0.406))),
+        image_std=tuple(config["model"].get("image_std", (0.229, 0.224, 0.225))),
         has_depth=True,
         is_pseudo=True,
     )
@@ -91,6 +95,8 @@ def main() -> None:
 
     _, model = load_model(config["model"]["pretrained_name"])
     model.to(device)
+    use_amp = device.type == "cuda"
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     train_loader = build_loader(config, "train_split", shuffle=True)
     val_loader = build_loader(config, "val_split", shuffle=False)
@@ -127,15 +133,16 @@ def main() -> None:
             valid_mask = batch["valid_mask"].to(device)
 
             optimizer.zero_grad(set_to_none=True)
-            pred = forward_depth(model, pixel_values)
-            pred = torch.nn.functional.interpolate(
-                pred.unsqueeze(1),
-                size=depth.shape[-2:],
-                mode="bilinear",
-                align_corners=False,
-            ).squeeze(1)
+            with torch.amp.autocast("cuda", enabled=use_amp):
+                pred = forward_depth(model, pixel_values)
+                pred = torch.nn.functional.interpolate(
+                    pred.unsqueeze(1),
+                    size=depth.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                ).squeeze(1)
 
-            loss = affine_invariant_l1(pred, depth, valid_mask)
+                loss = affine_invariant_l1(pred, depth, valid_mask)
             pseudo_weight = config["train"].get("pseudo_weight")
             if pseudo_weight is not None and "is_pseudo" in batch:
                 batch_weights = torch.where(
@@ -145,9 +152,11 @@ def main() -> None:
                 )
                 loss = loss * batch_weights.mean()
 
-            loss.backward()
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), config["train"]["grad_clip_norm"])
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
 
             running_loss += loss.item()
             if step % config["train"]["log_every"] == 0:
