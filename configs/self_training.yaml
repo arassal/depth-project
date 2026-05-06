@@ -1,0 +1,40 @@
+run_name: self_training
+seed: 42
+
+model:
+  pretrained_name: LiheYoung/depth-anything-small-hf
+  image_size: 384
+
+data:
+  root: /home/alexander/depth-project/data/nyu_v2
+  train_split: splits/train.txt
+  val_split: splits/val.txt
+  test_split: splits/test.txt
+  unlabeled_root: /home/alexander/depth-project/data/unlabeled
+  pseudo_root: /home/alexander/depth-project/data/pseudo_labels
+  pseudo_manifest: /home/alexander/depth-project/data/pseudo_labels/pseudo_manifest.txt
+  min_depth: 0.001
+  max_depth: 10.0
+
+train:
+  epochs: 8
+  batch_size: 2
+  num_workers: 2
+  learning_rate: 1.0e-5
+  weight_decay: 1.0e-4
+  grad_clip_norm: 1.0
+  pseudo_weight: 0.3
+  save_path: /home/alexander/depth-project/checkpoints/self_training_best.pt
+  history_path: /home/alexander/depth-project/outputs/metrics/self_training_history.jsonl
+
+eval:
+  checkpoint: /home/alexander/depth-project/checkpoints/self_training_best.pt
+  summary_path: /home/alexander/depth-project/outputs/metrics/self_training_test_summary.json
+  per_image_path: /home/alexander/depth-project/outputs/metrics/self_training_test_per_image.csv
+  preview_dir: /home/alexander/depth-project/outputs/predictions/self_training_test
+  num_preview_samples: 8
+
+pseudo:
+  source_glob: "*.png"
+  output_root: /home/alexander/depth-project/data/pseudo_labels
+  teacher_checkpoint: /home/alexander/depth-project/checkpoints/baseline_best.pt

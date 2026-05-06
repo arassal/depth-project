@@ -1,0 +1,33 @@
+run_name: baseline
+seed: 42
+
+model:
+  pretrained_name: LiheYoung/depth-anything-small-hf
+  image_size: 384
+
+data:
+  root: /home/alexander/depth-project/data/nyu_v2
+  train_split: splits/train.txt
+  val_split: splits/val.txt
+  test_split: splits/test.txt
+  min_depth: 0.001
+  max_depth: 10.0
+
+train:
+  epochs: 12
+  batch_size: 2
+  num_workers: 2
+  learning_rate: 2.0e-5
+  weight_decay: 1.0e-4
+  grad_clip_norm: 1.0
+  log_every: 10
+  val_every_epoch: true
+  save_path: /home/alexander/depth-project/checkpoints/baseline_best.pt
+  history_path: /home/alexander/depth-project/outputs/metrics/baseline_history.jsonl
+
+eval:
+  checkpoint: /home/alexander/depth-project/checkpoints/baseline_best.pt
+  summary_path: /home/alexander/depth-project/outputs/metrics/baseline_test_summary.json
+  per_image_path: /home/alexander/depth-project/outputs/metrics/baseline_test_per_image.csv
+  preview_dir: /home/alexander/depth-project/outputs/predictions/baseline_test
+  num_preview_samples: 8
