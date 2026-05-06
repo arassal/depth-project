@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Depth Anything Results Site</title>
+    <link rel="stylesheet" href="assets/styles.css">
+  </head>
+  <body class="noise">
+    <main class="shell">
+      <header class="hero">
+        <div class="hero-grid">
+          <section>
+            <span class="eyebrow">Depth Anything • Demo Site</span>
+            <h1>Implementation status, results pipeline, and demo artifacts.</h1>
+            <p class="lead">This page turns the original presentation into a concrete project view: what was built, what has already been verified, what artifacts exist now, and where the final training results will land once the NYU-v2 export completes.</p>
+          </section>
+          <aside class="panel">
+            <h2>Project snapshot</h2>
+            <div class="stats">
+              <div class="metric">
+                <span class="label">Repository</span>
+                <span class="value">Live</span>
+              </div>
+              <div class="metric">
+                <span class="label">Model</span>
+                <span class="value">DA-S</span>
+              </div>
+              <div class="metric">
+                <span class="label">Dataset</span>
+                <span class="value">NYU-v2</span>
+              </div>
+              <div class="metric">
+                <span class="label">Status</span>
+                <span class="value">Running</span>
+              </div>
+            </div>
+            <p class="footer-note">As of May 6, 2026, the codebase is complete and the NYU-v2 export is still in progress. Performance metrics will populate after the first training run.</p>
+          </aside>
+        </div>
+      </header>
+
+      <section class="section grid-3">
+        <article class="card">
+          <h3>Paper story preserved</h3>
+          <p>The project keeps the original presentation’s main structure: relative depth reasoning, Depth Anything Small, NYU-v2 evaluation, and an optional pseudo-label self-training extension.</p>
+        </article>
+        <article class="card">
+          <h3>Built for this machine</h3>
+          <p>The implementation is sized for an RTX 3050 4GB system, which means conservative image size, conservative batch size, and a lean training loop instead of a paper-scale reproduction.</p>
+        </article>
+        <article class="card">
+          <h3>Published and testable</h3>
+          <p>The project is in GitHub, the environment is installed, the checkpoint loads, and the dataset preparation path is scripted rather than manual.</p>
+        </article>
+      </section>
+
+      <section class="section grid-2">
+        <article class="panel">
+          <h2>What exists now</h2>
+          <div class="artifact-list">
+            <div class="artifact"><strong>GitHub repo</strong><code>https://github.com/arassal/depth-project</code></div>
+            <div class="artifact"><strong>Testing runbook</strong><span class="path">/home/alexander/Desktop/depth_project_testing.md</span></div>
+            <div class="artifact"><strong>Demonstration report</strong><span class="path">/home/alexander/Desktop/depth_anything_demonstration_report.md</span></div>
+            <div class="artifact"><strong>Slide deck</strong><span class="path">/home/alexander/depth-project/docs/presentation.html</span></div>
+            <div class="artifact"><strong>Results webpage</strong><span class="path">/home/alexander/depth-project/docs/results.html</span></div>
+          </div>
+        </article>
+        <article class="panel">
+          <h2>Project status</h2>
+          <div class="timeline">
+            <div class="timeline-item">
+              <strong><span class="status"><span class="dot ok"></span>Completed</span></strong>
+              Repo creation, dependency install, checkpoint validation, training/eval/plot code, pseudo-label path, and documentation.
+            </div>
+            <div class="timeline-item">
+              <strong><span class="status"><span class="dot warn"></span>Active</span></strong>
+              NYU-v2 dataset acquisition and export into the local folder structure used by the training scripts.
+            </div>
+            <div class="timeline-item">
+              <strong><span class="status"><span class="dot pending"></span>Next</span></strong>
+              Baseline fine-tuning, test evaluation, plot generation, and optional self-training comparison.
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="section result-shell">
+        <article class="panel">
+          <h2>Metrics dashboard</h2>
+          <p>These are the result slots defined by the project and the original slides. They are intentionally blank until the run produces real outputs.</p>
+          <div class="grid-2">
+            <div class="metric">
+              <span class="label">Baseline AbsRel</span>
+              <span class="value">Pending</span>
+            </div>
+            <div class="metric">
+              <span class="label">Baseline delta1</span>
+              <span class="value">Pending</span>
+            </div>
+            <div class="metric">
+              <span class="label">Self-training AbsRel</span>
+              <span class="value">Optional</span>
+            </div>
+            <div class="metric">
+              <span class="label">Self-training delta1</span>
+              <span class="value">Optional</span>
+            </div>
+          </div>
+          <div class="bar-chart">
+            <div class="bar-row"><span>Environment</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>done</strong></div>
+            <div class="bar-row"><span>Dataset prep</span><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><strong>live</strong></div>
+            <div class="bar-row"><span>Training</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><strong>queued</strong></div>
+            <div class="bar-row"><span>Evaluation</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><strong>queued</strong></div>
+          </div>
+        </article>
+        <aside class="result-placeholder">
+          <h3>Result panel area</h3>
+          <p>After the first run, this section should be replaced or supplemented with:</p>
+          <ul class="list">
+            <li>loss vs epoch plot</li>
+            <li>validation AbsRel curve</li>
+            <li>validation delta1 curve</li>
+            <li>per-image AbsRel histogram</li>
+            <li>RGB / ground-truth / prediction / error comparisons</li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="section grid-2">
+        <article class="panel">
+          <h2>Baseline commands</h2>
+          <pre class="code-block">cd /home/alexander/depth-project
+source .venv/bin/activate
+python src/prepare_nyu_v2.py \
+  --root /home/alexander/depth-project/data/nyu_v2 \
+  --val-count 512
+
+python src/train.py --config configs/baseline.yaml
+python src/eval.py --config configs/baseline.yaml \
+  --checkpoint checkpoints/baseline_best.pt
+
+python src/plots.py \
+  --metrics-log outputs/metrics/baseline_history.jsonl \
+  --per-image outputs/metrics/baseline_test_per_image.csv \
+  --output-dir outputs/plots/baseline</pre>
+        </article>
+        <article class="panel">
+          <h2>Why this counts as a full demo</h2>
+          <ul class="list">
+            <li>The original presentation theory is represented</li>
+            <li>The repo and training code are real, not mockups</li>
+            <li>The dataset workflow is automated</li>
+            <li>The testing and explanation artifacts exist outside the repo too</li>
+            <li>The final metric and qualitative slots are already defined and wired into the workflow</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="section grid-2">
+        <article class="card">
+          <h3>Open the slide deck</h3>
+          <p><a href="presentation.html">presentation.html</a></p>
+        </article>
+        <article class="card">
+          <h3>Open the detailed report</h3>
+          <p><a href="demonstration_report.md">demonstration_report.md</a></p>
+        </article>
+      </section>
+
+      <p class="footer-note">This page is intentionally honest: it shows a complete project build and a complete results pipeline, while clearly separating implemented infrastructure from metrics that still depend on the live NYU-v2 run.</p>
+    </main>
+  </body>
+</html>

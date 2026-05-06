@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Depth Anything Project Presentation</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/presentation.js"></script>
+  </head>
+  <body class="noise slide-deck">
+    <nav class="slide-nav">
+      <div>
+        <strong>Depth Anything Demo Deck</strong><br>
+        <span class="status"><span class="dot warn"></span>Results sections are wired; final metrics await NYU-v2 completion</span>
+      </div>
+      <div class="links">
+        <a href="#slide-1">Intro</a>
+        <a href="#slide-2">Problem</a>
+        <a href="#slide-3">Paper</a>
+        <a href="#slide-4">Translation</a>
+        <a href="#slide-5">Implementation</a>
+        <a href="#slide-6">Dataset</a>
+        <a href="#slide-7">Workflow</a>
+        <a href="#slide-8">Outputs</a>
+        <a href="#slide-9">Status</a>
+        <a href="#slide-10">Close</a>
+      </div>
+    </nav>
+
+    <section class="slide" id="slide-1">
+      <div class="slide-inner">
+        <div class="slide-grid">
+          <div>
+            <div class="kicker">Depth Anything Project</div>
+            <h1>From paper presentation to runnable depth system.</h1>
+            <p class="lead">This deck shows the original presentation story, the engineering interpretation, the repo that was built, and the results pipeline that now exists for NYU-v2 fine-tuning and evaluation.</p>
+            <div class="pill-row" style="margin-top:20px;">
+              <span class="pill">Depth Anything Small</span>
+              <span class="pill">NYU-v2</span>
+              <span class="pill">AbsRel</span>
+              <span class="pill">delta1</span>
+              <span class="pill">Pseudo-label path</span>
+            </div>
+          </div>
+          <div class="slide-card">
+            <h3>Deliverables</h3>
+            <ul class="list">
+              <li>GitHub repository with training, eval, plotting, and dataset preparation code</li>
+              <li>Standalone testing runbook and demonstration report</li>
+              <li>Presentation page for project walkthrough</li>
+              <li>Web results page for demo and artifact review</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-2">
+      <div class="slide-inner">
+        <div class="slide-grid">
+          <div class="slide-card">
+            <div class="kicker">Why Depth</div>
+            <h2>Monocular depth is useful and fundamentally ambiguous.</h2>
+            <p class="quote">One RGB image can support strong relative depth structure, but not guaranteed absolute metric depth. That is why alignment and relative-depth training matter.</p>
+          </div>
+          <div class="slide-card">
+            <h3>Use cases from the original presentation</h3>
+            <ul class="list">
+              <li>AR occlusion and 3D placement</li>
+              <li>Portrait effects and relighting</li>
+              <li>Navigation and robotics perception</li>
+              <li>3D reconstruction from ordinary photos</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-3">
+      <div class="slide-inner">
+        <div class="slide-grid">
+          <div>
+            <div class="kicker">Paper Claim</div>
+            <h2>Data scale, not a new architecture, is the headline.</h2>
+            <p class="lead">The original paper uses a pretrained visual backbone, a familiar depth head, and a teacher-student pseudo-label pipeline. The main claim is that scaling data quality and data quantity pushes zero-shot generalization.</p>
+          </div>
+          <div class="slide-card">
+            <div class="big-number">63.5M</div>
+            <p>Total images in the paper’s large-scale recipe. The local project does not fake this scale; it builds the same story in a realistic small-system form.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-4">
+      <div class="slide-inner">
+        <div class="slide-grid">
+          <div class="slide-card">
+            <div class="kicker">Engineering Translation</div>
+            <h2>What was preserved from the slides.</h2>
+            <ul class="list">
+              <li>Depth Anything Small as the default model</li>
+              <li>NYU-v2 as the benchmark dataset</li>
+              <li>Affine-invariant training logic</li>
+              <li>Aligned AbsRel and delta1 evaluation</li>
+              <li>A later pseudo-label self-training stage</li>
+            </ul>
+          </div>
+          <div class="slide-card">
+            <div class="kicker">What was intentionally cut</div>
+            <ul class="list">
+              <li>No fake reproduction of full 63.5M-image training</li>
+              <li>No oversized architecture changes</li>
+              <li>No metric-depth claims beyond what the pipeline supports</li>
+              <li>No results invented before the dataset and run complete</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-5">
+      <div class="slide-inner">
+        <div class="slide-grid">
+          <div>
+            <div class="kicker">Implementation</div>
+            <h2>A complete repo now exists.</h2>
+            <p class="lead">The codebase includes dataset preparation, training, evaluation, plotting, pseudo-label generation, config files, GitHub setup, and local testing instructions.</p>
+          </div>
+          <div class="slide-card">
+            <h3>Core files</h3>
+            <ul class="list">
+              <li><code>src/train.py</code></li>
+              <li><code>src/eval.py</code></li>
+              <li><code>src/plots.py</code></li>
+              <li><code>src/pseudo_label.py</code></li>
+              <li><code>src/prepare_nyu_v2.py</code></li>
+              <li><code>configs/baseline.yaml</code></li>
+              <li><code>configs/self_training.yaml</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-6">
+      <div class="slide-inner">
+        <div class="slide-grid">
+          <div class="slide-card">
+            <div class="kicker">Dataset Choice</div>
+            <h2>NYU-v2 is the correct first benchmark.</h2>
+            <p>It matches the original presentation, fits the indoor-depth story, and is realistic for a local fine-tuning and evaluation run.</p>
+          </div>
+          <div class="slide-card">
+            <h3>Preparation command</h3>
+            <pre class="code-block">cd /home/alexander/depth-project
+source .venv/bin/activate
+python src/prepare_nyu_v2.py \
+  --root /home/alexander/depth-project/data/nyu_v2 \
+  --val-count 512</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-7">
+      <div class="slide-inner">
+        <div class="slide-grid">
+          <div class="slide-card">
+            <div class="kicker">Execution Flow</div>
+            <h2>Baseline run, then evaluation, then plots.</h2>
+            <ol class="list">
+              <li>Prepare NYU-v2 into train, val, and test manifests</li>
+              <li>Fine-tune Depth Anything Small on NYU-v2</li>
+              <li>Evaluate with aligned AbsRel and delta1</li>
+              <li>Generate qualitative panels and metric plots</li>
+              <li>Optionally run pseudo-label self-training</li>
+            </ol>
+          </div>
+          <div class="slide-card">
+            <h3>Expected outputs</h3>
+            <ul class="list">
+              <li>Best checkpoint</li>
+              <li>Training history JSONL</li>
+              <li>Test summary JSON</li>
+              <li>Per-image metric CSV</li>
+              <li>Qualitative prediction panels</li>
+              <li>Loss and metric plots</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-8">
+      <div class="slide-inner">
+        <div class="slide-grid">
+          <div class="slide-card">
+            <div class="kicker">Results Section</div>
+            <h2>The pipeline is ready for the results that belong here.</h2>
+            <p>Because the dataset export is still running, these are result slots rather than fabricated numbers. The structure is already defined and matches the original project goals.</p>
+            <div class="pill-row">
+              <span class="pill">Loss vs epoch</span>
+              <span class="pill">Validation AbsRel</span>
+              <span class="pill">Validation delta1</span>
+              <span class="pill">Per-image histogram</span>
+              <span class="pill">RGB / GT / Pred / Error</span>
+            </div>
+          </div>
+          <div class="slide-card">
+            <h3>What will be reported</h3>
+            <ul class="list">
+              <li>Zero-shot baseline before fine-tuning</li>
+              <li>Supervised baseline after NYU-v2 fine-tuning</li>
+              <li>Optional self-training comparison</li>
+              <li>Qualitative failure modes</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-9">
+      <div class="slide-inner">
+        <div class="slide-grid">
+          <div>
+            <div class="kicker">Current State</div>
+            <h2>Real progress is already visible.</h2>
+            <div class="bar-chart">
+              <div class="bar-row"><span>Repo</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>100%</strong></div>
+              <div class="bar-row"><span>Environment</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>100%</strong></div>
+              <div class="bar-row"><span>Code</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>100%</strong></div>
+              <div class="bar-row"><span>Dataset prep</span><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><strong>live</strong></div>
+              <div class="bar-row"><span>Training results</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><strong>pending</strong></div>
+            </div>
+          </div>
+          <div class="slide-card">
+            <h3>Live status</h3>
+            <ul class="list">
+              <li>GitHub repo published</li>
+              <li>Desktop testing runbook written</li>
+              <li>Demonstration report written</li>
+              <li>NYU-v2 export job active locally</li>
+              <li>Baseline training queued after dataset completion</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-10">
+      <div class="slide-inner">
+        <div class="slide-grid">
+          <div>
+            <div class="kicker">Conclusion</div>
+            <h2>The project is no longer just a paper talk.</h2>
+            <p class="lead">It is now a repo, an environment, a data-prep workflow, a training pipeline, an evaluation pipeline, a testing runbook, a demonstration report, a slide deck, and a web results page.</p>
+          </div>
+          <div class="slide-card">
+            <h3>Open next</h3>
+            <ul class="list">
+              <li><a href="results.html">Results webpage</a></li>
+              <li><a href="demonstration_report.md">Detailed report</a></li>
+              <li><a href="https://github.com/arassal/depth-project">GitHub repository</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
