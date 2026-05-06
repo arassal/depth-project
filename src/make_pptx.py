@@ -237,6 +237,15 @@ add_caption(slide, "Fine-tuned prediction panel for the same sample", 0.5, 6.7, 
 # Slide 8
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 set_bg(slide)
+add_title(slide, "Second Qualitative Example")
+slide.shapes.add_picture(str(PREDS / "poc_zero_shot" / "000004.png"), Inches(0.55), Inches(1.35), width=Inches(5.9))
+slide.shapes.add_picture(str(PREDS / "poc_finetuned" / "000004.png"), Inches(6.85), Inches(1.35), width=Inches(5.9))
+add_caption(slide, "Zero-shot panel, sample 000004", 0.55, 6.7, 5.9)
+add_caption(slide, "Fine-tuned panel, sample 000004", 6.85, 6.7, 5.9)
+
+# Slide 9
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+set_bg(slide)
 add_title(slide, "System Assessment")
 add_bullets(
     slide,
@@ -265,7 +274,7 @@ add_bullets(
     font_size=22,
 )
 
-# Slide 9
+# Slide 10
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 set_bg(slide)
 add_title(slide, "Interactive Demo and Second Dataset")
@@ -323,7 +332,7 @@ slide.shapes.add_picture(
 add_caption(slide, "KITTI RGB sample", 0.9, 6.7, 5.2)
 add_caption(slide, "KITTI predicted depth", 7.1, 6.7, 5.2)
 
-# Slide 10
+# Slide 11
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 set_bg(slide)
 add_title(slide, "Final Takeaway")
