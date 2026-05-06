@@ -8,3 +8,5 @@ torchvision>=0.17
 transformers>=4.39
 safetensors>=0.4
 pandas>=2.2
+datasets>=4.8
+h5py>=3.11

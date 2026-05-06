@@ -54,6 +54,14 @@ pip install -r requirements.txt --no-deps
 ```
 
 ## Baseline Run
+Prepare `NYU-v2` from the Hugging Face shard source:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+python src/prepare_nyu_v2.py --root /home/alexander/depth-project/data/nyu_v2 --val-count 512
+```
+
 Train:
 
 ```bash
