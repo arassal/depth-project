@@ -268,7 +268,7 @@ add_bullets(
 # Slide 9
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 set_bg(slide)
-add_title(slide, "Interactive Demo")
+add_title(slide, "Interactive Demo and Second Dataset")
 add_bullets(
     slide,
     [
@@ -278,9 +278,9 @@ add_bullets(
         "It runs the pretrained model on any uploaded image and saves the predicted depth map",
     ],
     0.8,
-    1.5,
-    7.0,
-    2.6,
+    1.3,
+    6.0,
+    2.5,
 )
 add_bullets(
     slide,
@@ -289,25 +289,39 @@ add_bullets(
         "This is the most reliable demo mode because it uses the better zero-shot model",
     ],
     0.9,
-    4.7,
-    7.0,
-    1.6,
-    font_size=20,
+    0.9,
+    6.0,
+    1.3,
+    font_size=18,
 )
 add_bullets(
     slide,
     [
-        "Presentation assets:",
-        "docs/presentation.html",
-        "docs/results.html",
-        "outputs/predictions/poc_compare_gallery.html",
+        "Second dataset:",
+        "KITTI Tiny on Desktop",
+        "7 outdoor driving frames",
+        "Zero-shot folder inference worked successfully",
     ],
-    8.0,
-    1.7,
+    7.3,
+    1.4,
     4.3,
-    3.0,
+    2.0,
     font_size=18,
 )
+slide.shapes.add_picture(
+    str(Path("/home/alexander/Desktop/DepthProjectDemo/KITTI_tiny/KITTI_tiny/2011_09_26/2011_09_26_drive_0023_sync/image_02/data/0000000000.png")),
+    Inches(0.9),
+    Inches(4.0),
+    width=Inches(5.2),
+)
+slide.shapes.add_picture(
+    str(Path("/home/alexander/Desktop/DepthProjectDemo/KITTI_tiny_depth_outputs/image_02/0000000000.png")),
+    Inches(7.1),
+    Inches(4.0),
+    width=Inches(5.2),
+)
+add_caption(slide, "KITTI RGB sample", 0.9, 6.7, 5.2)
+add_caption(slide, "KITTI predicted depth", 7.1, 6.7, 5.2)
 
 # Slide 10
 slide = prs.slides.add_slide(prs.slide_layouts[6])
