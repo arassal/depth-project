@@ -167,6 +167,25 @@ python src/plots.py \
         </article>
       </section>
 
+      <section class="section grid-2">
+        <article class="panel">
+          <h2>Interactive Upload Demo</h2>
+          <p>You can run a live local web app that accepts any uploaded image and generates a depth map with the pretrained model.</p>
+          <pre class="code-block">cd /home/alexander/depth-project
+source .venv/bin/activate
+python src/demo_web_app.py</pre>
+          <p>Then open <code>http://127.0.0.1:8000</code> in the browser.</p>
+        </article>
+        <article class="panel">
+          <h2>What to expect</h2>
+          <ul class="list">
+            <li>The upload demo runs zero-shot inference, not the overfit fine-tuned checkpoint</li>
+            <li>It is best at relative depth structure, not perfect metric depth</li>
+            <li>Uploaded inputs and generated depth images are saved under <code>outputs/web_demo/</code></li>
+          </ul>
+        </article>
+      </section>
+
       <p class="footer-note">This page is intentionally honest: the zero-shot baseline beat the small fine-tuned model on the held-out subset, and that outcome is exactly the kind of result a credible proof-of-concept presentation should surface.</p>
     </main>
   </body>
