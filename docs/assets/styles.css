@@ -240,6 +240,38 @@ a {
   color: var(--accent-dark);
 }
 
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.gallery-grid-wide {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.figure-card {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  overflow: hidden;
+  background: rgba(255, 250, 240, 0.7);
+  box-shadow: var(--shadow);
+}
+
+.figure-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #efe4d5;
+}
+
+.figure-card figcaption {
+  padding: 14px 16px 16px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .result-shell {
   margin-top: 24px;
   display: grid;
@@ -424,7 +456,9 @@ a {
   .grid-3,
   .grid-2,
   .slide-grid,
-  .result-shell {
+  .result-shell,
+  .gallery-grid,
+  .gallery-grid-wide {
     grid-template-columns: 1fr;
   }
 

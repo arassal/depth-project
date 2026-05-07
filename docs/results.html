@@ -12,8 +12,8 @@
         <div class="hero-grid">
           <section>
             <span class="eyebrow">Depth Anything • Demo Site</span>
-            <h1>Implementation status, results pipeline, and demo artifacts.</h1>
-            <p class="lead">This page turns the original presentation into a concrete project view: what was built, what has already been verified, what artifacts exist now, and where the final training results will land once the NYU-v2 export completes.</p>
+            <h1>Implementation status, measured results, and demo artifacts.</h1>
+            <p class="lead">This page turns the original presentation into a concrete project view: what was built, what was tested, what the outputs look like, and what the completed proof-of-concept actually measured on NYU-v2 and KITTI Tiny.</p>
           </section>
           <aside class="panel">
             <h2>Project snapshot</h2>
@@ -35,7 +35,7 @@
                 <span class="value">Measured</span>
               </div>
             </div>
-            <p class="footer-note">As of May 6, 2026, the proof-of-concept experiment is complete on a clean NYU-v2 subset. The useful result is that the small fine-tune overfit and underperformed the zero-shot baseline on the held-out test subset.</p>
+            <p class="footer-note">As of May 7, 2026, the proof-of-concept experiment is complete on a clean NYU-v2 subset. The useful result is that the small fine-tune overfit and underperformed the zero-shot baseline on the held-out test subset.</p>
           </aside>
         </div>
       </header>
@@ -43,7 +43,7 @@
       <section class="section grid-3">
         <article class="card">
           <h3>Paper story preserved</h3>
-          <p>The project keeps the original presentation’s main structure: relative depth reasoning, Depth Anything Small, NYU-v2 evaluation, and an optional pseudo-label self-training extension.</p>
+          <p>The repo keeps the original presentation’s structure: relative depth reasoning, Depth Anything Small, NYU-v2 evaluation, and an optional pseudo-label self-training extension.</p>
         </article>
         <article class="card">
           <h3>Built for this machine</h3>
@@ -51,7 +51,7 @@
         </article>
         <article class="card">
           <h3>Published and testable</h3>
-          <p>The project is in GitHub, the environment is installed, the checkpoint loads, and the dataset preparation path is scripted rather than manual.</p>
+          <p>The project is in GitHub, the environment is installed, the checkpoint loads, and a small curated set of real result images is now versioned in the docs.</p>
         </article>
       </section>
 
@@ -60,10 +60,10 @@
           <h2>What exists now</h2>
           <div class="artifact-list">
             <div class="artifact"><strong>GitHub repo</strong><code>https://github.com/arassal/depth-project</code></div>
-            <div class="artifact"><strong>Testing runbook</strong><span class="path">/home/alexander/Desktop/depth_project_testing.md</span></div>
-            <div class="artifact"><strong>Demonstration report</strong><span class="path">/home/alexander/Desktop/depth_anything_demonstration_report.md</span></div>
+            <div class="artifact"><strong>Diagnostics note</strong><span class="path">/home/alexander/depth-project/docs/diagnostics.md</span></div>
             <div class="artifact"><strong>Slide deck</strong><span class="path">/home/alexander/depth-project/docs/presentation.html</span></div>
             <div class="artifact"><strong>Results webpage</strong><span class="path">/home/alexander/depth-project/docs/results.html</span></div>
+            <div class="artifact"><strong>PPTX deck</strong><span class="path">/home/alexander/depth-project/docs/DepthProjectPresentation.pptx</span></div>
           </div>
         </article>
         <article class="panel">
@@ -71,15 +71,15 @@
           <div class="timeline">
             <div class="timeline-item">
               <strong><span class="status"><span class="dot ok"></span>Completed</span></strong>
-              Repo creation, dependency install, checkpoint validation, training/eval/plot code, pseudo-label path, documentation, subset export, zero-shot eval, fine-tuning, plots, and image galleries.
+              Repo creation, environment install, checkpoint validation, training/eval/plot code, subset export, zero-shot eval, fine-tuning, plots, image galleries, web demo, and presentation assets.
             </div>
             <div class="timeline-item">
               <strong><span class="status"><span class="dot warn"></span>Finding</span></strong>
-              The two-epoch fine-tune improved validation metrics but degraded test metrics on the PoC split, which points to overfitting and motivates hyperparameter or dataset-size changes.
+              The two-epoch fine-tune improved validation metrics but degraded test metrics on the PoC split, which points to overfitting rather than a successful adaptation.
             </div>
             <div class="timeline-item">
-              <strong><span class="status"><span class="dot pending"></span>Next</span></strong>
-              Expand the dataset split or adjust the learning setup before attempting a stronger fine-tuned model for presentation beyond the PoC.
+              <strong><span class="status"><span class="dot pending"></span>Next best improvement</span></strong>
+              Increase data volume or retune learning settings before claiming that the fine-tuned checkpoint is better than the pretrained zero-shot model.
             </div>
           </div>
         </article>
@@ -116,7 +116,7 @@
         </article>
         <aside class="result-placeholder">
           <h3>Main conclusion</h3>
-          <p>The fine-tuned checkpoint performed worse than the zero-shot baseline on the held-out test subset. That makes this run a valid proof-of-concept and a useful hyperparameter-analysis artifact, not just a success-only demo.</p>
+          <p>The fine-tuned checkpoint performed worse than the zero-shot baseline on the held-out test subset. That makes this run a valid proof-of-concept and a useful hyperparameter-analysis artifact, not a fake success story.</p>
           <ul class="list">
             <li>validation still improved across epochs</li>
             <li>test performance dropped after fine-tuning</li>
@@ -124,6 +124,80 @@
             <li>all 59 before/after image panels were saved for inspection</li>
           </ul>
         </aside>
+      </section>
+
+      <section class="section">
+        <article class="panel">
+          <h2>Diagnostics summary</h2>
+          <div class="grid-2">
+            <div class="metric">
+              <span class="label">Split counts</span>
+              <span class="value">450 / 60 / 59</span>
+            </div>
+            <div class="metric">
+              <span class="label">Model load</span>
+              <span class="value">passed</span>
+            </div>
+            <div class="metric">
+              <span class="label">Source compile</span>
+              <span class="value">passed</span>
+            </div>
+            <div class="metric">
+              <span class="label">Artifacts</span>
+              <span class="value">saved</span>
+            </div>
+          </div>
+          <p class="footer-note">Full note: <a href="diagnostics.md">diagnostics.md</a></p>
+        </article>
+      </section>
+
+      <section class="section">
+        <article class="panel">
+          <h2>How to read the NYU-v2 panels</h2>
+          <p>Each saved panel is organized as <code>RGB | GT | Pred | Error</code>. The main question is whether the model preserves the large scene layout and the near-versus-far ordering, not whether it produces exact real-world distance in meters from a single photo.</p>
+          <div class="gallery-grid">
+            <figure class="figure-card">
+              <img src="assets/figures/nyu_zero_shot_000000.png" alt="Zero-shot NYU-v2 panel">
+              <figcaption>Zero-shot example. The pretrained model preserves the room structure and depth ordering well.</figcaption>
+            </figure>
+            <figure class="figure-card">
+              <img src="assets/figures/nyu_finetuned_000000.png" alt="Fine-tuned NYU-v2 panel">
+              <figcaption>Fine-tuned example on the same test image. The result is softer and quantitatively worse on the held-out set.</figcaption>
+            </figure>
+            <figure class="figure-card">
+              <img src="assets/figures/nyu_zero_shot_000004.png" alt="Second zero-shot NYU-v2 panel">
+              <figcaption>Second zero-shot example. Boundaries and relative scene shape are still coherent.</figcaption>
+            </figure>
+            <figure class="figure-card">
+              <img src="assets/figures/nyu_finetuned_000004.png" alt="Second fine-tuned NYU-v2 panel">
+              <figcaption>Second fine-tuned example. This run shows the same overfitting pattern rather than a sharper reconstruction.</figcaption>
+            </figure>
+          </div>
+        </article>
+      </section>
+
+      <section class="section">
+        <article class="panel">
+          <h2>Training curves and test spread</h2>
+          <div class="gallery-grid gallery-grid-wide">
+            <figure class="figure-card">
+              <img src="assets/figures/loss_vs_epoch.png" alt="Training loss by epoch">
+              <figcaption>Training loss decreased across the two-epoch run.</figcaption>
+            </figure>
+            <figure class="figure-card">
+              <img src="assets/figures/val_absrel_vs_epoch.png" alt="Validation AbsRel by epoch">
+              <figcaption>Validation AbsRel improved during training, which looked promising locally.</figcaption>
+            </figure>
+            <figure class="figure-card">
+              <img src="assets/figures/val_delta1_vs_epoch.png" alt="Validation delta1 by epoch">
+              <figcaption>Validation delta1 also improved, but the held-out test split still got worse.</figcaption>
+            </figure>
+            <figure class="figure-card">
+              <img src="assets/figures/test_absrel_histogram.png" alt="Per-image test AbsRel histogram">
+              <figcaption>Per-image test error distribution from the saved evaluation outputs.</figcaption>
+            </figure>
+          </div>
+        </article>
       </section>
 
       <section class="section grid-2">
@@ -150,8 +224,8 @@ python src/plots.py \
             <li>The original presentation theory is represented</li>
             <li>The repo and training code are real, not mockups</li>
             <li>The dataset workflow is automated</li>
-            <li>The testing and explanation artifacts exist outside the repo too</li>
-            <li>The final metrics, plots, and before/after images are now generated from a completed run</li>
+            <li>The qualitative outputs and plots were generated from a completed run</li>
+            <li>The page now includes versioned figures that make the result understandable to an untrained viewer</li>
           </ul>
         </article>
       </section>
@@ -168,13 +242,27 @@ python src/plots.py \
       </section>
 
       <section class="section grid-2">
-        <article class="card">
-          <h3>Open KITTI Tiny Gallery</h3>
-          <p><a href="../../Desktop/DepthProjectDemo/KITTI_tiny_depth_outputs/kitti_gallery.html">kitti_gallery.html</a></p>
+        <article class="panel">
+          <h2>Second dataset: KITTI Tiny</h2>
+          <p>KITTI Tiny is included as a zero-shot outdoor driving demo to show that the pretrained model is not locked to indoor scenes.</p>
+          <div class="gallery-grid">
+            <figure class="figure-card">
+              <img src="assets/figures/kitti_input_0000000000.png" alt="KITTI input frame">
+              <figcaption>Raw KITTI frame.</figcaption>
+            </figure>
+            <figure class="figure-card">
+              <img src="assets/figures/kitti_depth_0000000000.png" alt="KITTI predicted depth map">
+              <figcaption>Predicted depth map from the same frame.</figcaption>
+            </figure>
+          </div>
         </article>
-        <article class="card">
-          <h3>Second dataset added</h3>
-          <p>KITTI Tiny is included as a zero-shot outdoor driving demo to show behavior beyond the indoor NYU-v2 subset.</p>
+        <article class="panel">
+          <h2>What this demonstrates</h2>
+          <ul class="list">
+            <li>The pretrained model generalizes to an outdoor scene without extra tuning</li>
+            <li>The output is most trustworthy as relative depth structure</li>
+            <li>The second dataset is useful because it shows indoor and outdoor behavior side by side</li>
+          </ul>
         </article>
       </section>
 
