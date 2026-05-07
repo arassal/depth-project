@@ -18,6 +18,21 @@ def read_jsonl(path: Path) -> list[dict]:
     return rows
 
 
+def configure_epoch_axis(ax, epochs: pd.Series) -> None:
+    values = epochs.tolist()
+    ax.set_xticks(values)
+    if len(values) == 1:
+        epoch = float(values[0])
+        ax.set_xlim(epoch - 0.5, epoch + 0.5)
+
+
+def plot_series(ax, epochs: pd.Series, values: pd.Series, label: str | None = None) -> None:
+    kwargs = {"marker": "o", "linewidth": 2, "markersize": 7}
+    if label is not None:
+        kwargs["label"] = label
+    ax.plot(epochs, values, **kwargs)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--metrics-log", required=True)
@@ -32,8 +47,9 @@ def main() -> None:
     per_image = pd.read_csv(args.per_image)
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(history["epoch"], history["train_loss"], label="train")
-    ax.plot(history["epoch"], history["val_loss"], label="val")
+    plot_series(ax, history["epoch"], history["train_loss"], label="train")
+    plot_series(ax, history["epoch"], history["val_loss"], label="val")
+    configure_epoch_axis(ax, history["epoch"])
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Loss")
     ax.set_title("Loss vs Epoch")
@@ -43,7 +59,8 @@ def main() -> None:
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(history["epoch"], history["val_abs_rel"])
+    plot_series(ax, history["epoch"], history["val_abs_rel"])
+    configure_epoch_axis(ax, history["epoch"])
     ax.set_xlabel("Epoch")
     ax.set_ylabel("AbsRel")
     ax.set_title("Validation AbsRel vs Epoch")
@@ -52,7 +69,8 @@ def main() -> None:
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(history["epoch"], history["val_delta1"])
+    plot_series(ax, history["epoch"], history["val_delta1"])
+    configure_epoch_axis(ax, history["epoch"])
     ax.set_xlabel("Epoch")
     ax.set_ylabel("delta1")
     ax.set_title("Validation delta1 vs Epoch")
