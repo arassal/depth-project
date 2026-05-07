@@ -1,6 +1,10 @@
 # Depth Project
 
-Monocular depth proof of concept built from the original `Depth Anything` presentation, then turned into a runnable repo with training, evaluation, plots, qualitative outputs, a web demo, and presentation assets.
+Cal Poly Pomona, ECE 4990 Final Project (Spring 2026).
+
+**Group members:** [Member 1 Name], [Member 2 Name]
+
+Monocular depth estimation with `Depth Anything Small` as the student backbone. The contribution layered on top of the proof-of-concept fine-tune is a teacher–student distillation recipe (with `Depth Anything Large` as the teacher) combined with a multi-scale gradient loss for sharper depth boundaries. Evaluated on NYU-v2 (indoor) and a KITTI eigen-split subset (outdoor).
 
 ## What This Repo Shows
 - model: `LiheYoung/depth-anything-small-hf`
@@ -86,9 +90,7 @@ Predicted depth:
 - presentation page: [docs/presentation.html](docs/presentation.html)
 - pptx: [docs/DepthProjectPresentation.pptx](docs/DepthProjectPresentation.pptx)
 - diagnostics note: [docs/diagnostics.md](docs/diagnostics.md)
-
-Desktop package:
-- `/home/alexander/Desktop/DepthProjectDemo`
+- paper: [paper/main.tex](paper/main.tex)
 
 ## Progressive Dataset Expansion
 The clean way to add more datasets is:
@@ -99,67 +101,104 @@ The clean way to add more datasets is:
 
 Workflow note: [docs/multi_dataset_workflow.md](docs/multi_dataset_workflow.md)
 
-Merge example:
+## Method
 
-```bash
-cd /home/alexander/depth-project
-source .venv/bin/activate
-python src/merge_manifests.py \
-  --absolute-paths \
-  --manifest /home/alexander/depth-project/data/nyu_v2_poc/splits/train.txt \
-  --manifest /path/to/second_dataset/splits/train.txt \
-  --output /home/alexander/depth-project/data/manifests/train_multi.txt
+Student: `LiheYoung/depth-anything-small-hf` (~25M params, ViT-S backbone + DPT head).
+Teacher: `LiheYoung/depth-anything-large-hf` (~335M params), frozen.
+
+Training objective:
+
+```
+L_total = (1 - alpha) * L_base(student, gt)
+        + alpha       * L_distill(student, teacher)
+        + beta        * L_grad(student, gt)
 ```
 
-Then train with:
+where `L_base` and `L_distill` are affine-invariant L1 (robust median + MAD normalization, then per-pixel L1) and `L_grad` is the multi-scale Sobel gradient L1 from ZoeDepth (Bhat et al. 2023). `alpha` and `beta` are swept; defaults are in `configs/distill.yaml`.
+
+The distillation recipe is adapted from Distill-Any-Depth (He et al. 2025); the gradient loss is lifted from ZoeDepth. Both are cited in-line in `src/distill.py` and `src/metrics.py`.
+
+## Repo Layout
+
+```
+src/         training, eval, distillation, dataset loaders, plotting
+configs/     yaml configs (poc, distill, kitti_eval, smoke_test, sweeps/)
+paper/       CVPR 2023 LaTeX template, refs.bib, figs/ -> docs/assets/figures
+docs/        results, presentation, diagnostics, qualitative figures
+references/  cloned upstream repos used for code lifts (gitignored)
+tools/       smoke tests for data loaders
+```
+
+## Reproducibility
+
+All paths are relative to the repo root. Set `data/` and `checkpoints/` per the configs, or override with CLI flags.
+
+Prepare NYU-v2:
 
 ```bash
-python src/train.py --config configs/poc_multi_dataset_template.yaml
+python src/prepare_nyu_v2.py --root data/nyu_v2 --val-count 512
+```
+
+Prepare KITTI eigen-split eval subset (requires manual KITTI download — see script for instructions):
+
+```bash
+python src/prepare_kitti.py --root data/kitti --limit 100
+```
+
+Train baseline (no distillation):
+
+```bash
+python src/train.py --config configs/poc.yaml
+```
+
+Train with distillation + gradient loss:
+
+```bash
+python src/train.py --config configs/distill.yaml
+```
+
+Evaluate on NYU-v2:
+
+```bash
+python src/eval.py --config configs/distill.yaml
+```
+
+Evaluate on KITTI:
+
+```bash
+python src/eval.py --config configs/kitti_eval.yaml
+```
+
+Hyperparameter sweep:
+
+```bash
+python src/sweep.py --base configs/distill.yaml --grid configs/sweeps/lr_only.yaml --out outputs/sweeps/lr
+```
+
+Plot training curves:
+
+```bash
+python src/plots.py --metrics-log outputs/metrics/distill_history.jsonl \
+                    --per-image outputs/metrics/distill_test_per_image.csv \
+                    --output-dir outputs/plots/distill
+```
+
+Plot sweep results (line):
+
+```bash
+python src/plot_sweep.py --results outputs/sweeps/lr/results.json \
+                         --x learning_rate --metric abs_rel \
+                         --output-dir outputs/plots/sweeps
 ```
 
 ## Local Web Demo
-Run:
 
 ```bash
-cd /home/alexander/depth-project
-source .venv/bin/activate
 python src/demo_web_app.py
 ```
 
-Then open:
+Open `http://127.0.0.1:8000`. Runs zero-shot inference on uploaded images, outputs under `outputs/web_demo/`.
 
-```text
-http://127.0.0.1:8000
-```
+## Status
 
-This runs zero-shot inference on uploaded RGB images and saves outputs under `outputs/web_demo/`.
-
-## Training Commands
-Prepare the full NYU-v2 export:
-
-```bash
-cd /home/alexander/depth-project
-source .venv/bin/activate
-python src/prepare_nyu_v2.py --root /home/alexander/depth-project/data/nyu_v2 --val-count 512
-```
-
-Train:
-
-```bash
-python src/train.py --config configs/baseline.yaml
-```
-
-Evaluate:
-
-```bash
-python src/eval.py --config configs/baseline.yaml --checkpoint checkpoints/baseline_best.pt
-```
-
-Generate plots:
-
-```bash
-python src/plots.py --metrics-log outputs/metrics/baseline_history.jsonl --per-image outputs/metrics/baseline_test_per_image.csv --output-dir outputs/plots/baseline
-```
-
-## Honest Conclusion
-This repo is a successful depth-estimation proof of concept, not a claim of successful task-specific fine-tuning. The zero-shot model is accurate enough to demonstrate meaningful depth structure. The custom fine-tuning recipe needs more data or better tuning before it should be presented as an improvement.
+The proof-of-concept fine-tune (Zero-shot vs Fine-tuned table above) is the baseline going into the final project. The current focus is the distillation + gradient-loss recipe described in [Method](#method); training and ablation results will replace the placeholder rows in the report and presentation once the GPU runs are complete.

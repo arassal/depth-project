@@ -6,7 +6,7 @@ model:
   image_size: 384
 
 data:
-  root: /home/alexander/depth-project/data/nyu_v2
+  root: data/nyu_v2
   train_split: splits/train.txt
   val_split: splits/val.txt
   test_split: splits/test.txt
@@ -22,12 +22,12 @@ train:
   grad_clip_norm: 1.0
   log_every: 10
   val_every_epoch: true
-  save_path: /home/alexander/depth-project/checkpoints/baseline_best.pt
-  history_path: /home/alexander/depth-project/outputs/metrics/baseline_history.jsonl
+  save_path: checkpoints/baseline_best.pt
+  history_path: outputs/metrics/baseline_history.jsonl
 
 eval:
-  checkpoint: /home/alexander/depth-project/checkpoints/baseline_best.pt
-  summary_path: /home/alexander/depth-project/outputs/metrics/baseline_test_summary.json
-  per_image_path: /home/alexander/depth-project/outputs/metrics/baseline_test_per_image.csv
-  preview_dir: /home/alexander/depth-project/outputs/predictions/baseline_test
+  checkpoint: checkpoints/baseline_best.pt
+  summary_path: outputs/metrics/baseline_test_summary.json
+  per_image_path: outputs/metrics/baseline_test_per_image.csv
+  preview_dir: outputs/predictions/baseline_test
   num_preview_samples: 8

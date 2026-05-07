@@ -1,0 +1,26 @@
+# KITTI quantitative evaluation config.
+# Adapted from references/Depth-Anything-V2/metric_depth/dataset/kitti.py
+# (image_size=518) and the standard KITTI Eigen eval (min=0.001, max=80.0).
+run_name: kitti_eval
+seed: 42
+
+model:
+  pretrained_name: LiheYoung/depth-anything-small-hf
+  image_size: 518
+  image_mean: [0.485, 0.456, 0.406]
+  image_std: [0.229, 0.224, 0.225]
+
+data:
+  root: data/kitti
+  test_split: manifests/test.txt
+  min_depth: 0.001
+  max_depth: 80.0
+  # KITTI ground-truth depth PNGs are 16-bit with meters = pixel / 256.0.
+  depth_scale: 256.0
+
+eval:
+  checkpoint: null
+  summary_path: outputs/metrics/kitti_test_summary.json
+  per_image_path: outputs/metrics/kitti_test_per_image.csv
+  preview_dir: outputs/predictions/kitti_test
+  num_preview_samples: 16

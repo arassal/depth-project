@@ -1,0 +1,4 @@
+sweep:
+  learning_rate: [1.0e-5, 5.0e-5, 1.0e-4]
+keys:
+  learning_rate: "training.learning_rate"

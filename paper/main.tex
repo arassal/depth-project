@@ -1,0 +1,117 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+%%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
+\usepackage[review]{cvpr}      % To produce the REVIEW version
+%\usepackage{cvpr}              % To produce the CAMERA-READY version
+%\usepackage[pagenumbers]{cvpr} % To force page numbers, e.g. for an arXiv version
+
+% Include other packages here, before hyperref.
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+
+% It is strongly recommended to use hyperref, especially for the review version.
+\usepackage[pagebackref,breaklinks,colorlinks]{hyperref}
+
+% Support for easy cross-referencing
+\usepackage[capitalize]{cleveref}
+\crefname{section}{Sec.}{Secs.}
+\Crefname{section}{Section}{Sections}
+\Crefname{table}{Table}{Tables}
+\crefname{table}{Tab.}{Tabs.}
+
+%%%%%%%%% PAPER ID  - PLEASE UPDATE
+\def\cvprPaperID{*****} % *** Enter the CVPR Paper ID here
+\def\confName{CVPR}
+\def\confYear{2024}
+
+\begin{document}
+
+%%%%%%%%% TITLE - PLEASE UPDATE
+\title{Distillation and Edge-Aware Loss for Efficient Monocular Depth Estimation}
+
+%%%%%%%%% AUTHORS - PLEASE UPDATE
+\author{[Group Member 1]\\
+Institution\\
+\tt\small member1@example.com
+\and
+[Group Member 2]\\
+Institution\\
+\tt\small member2@example.com
+}
+
+\maketitle
+
+%%%%%%%%% ABSTRACT
+\begin{abstract}
+% TODO: write abstract
+   This paper studies efficient monocular depth estimation through knowledge distillation and edge-aware supervision. (placeholder stub)
+\end{abstract}
+
+%%%%%%%%% BODY TEXT
+\section{Introduction}
+\label{sec:intro}
+% TODO: motivate the problem, summarize contributions, and outline the paper.
+
+\section{Related Work}
+\label{sec:related}
+% TODO: cover monocular depth estimation, knowledge distillation, and edge-aware losses.
+
+\section{Proposed Approach}
+\label{sec:approach}
+% TODO: overview the method.
+
+\subsection{Baseline}
+\label{sec:baseline}
+% TODO: describe the baseline architecture and training setup.
+
+\subsection{Distillation}
+\label{sec:distillation}
+% TODO: describe the teacher-student distillation procedure.
+
+\subsection{Edge-aware Loss}
+\label{sec:edge-loss}
+% TODO: define the edge-aware loss formulation.
+
+\section{Experiments}
+\label{sec:experiments}
+% TODO: introduce the experimental protocol.
+
+\subsection{Datasets}
+\label{sec:datasets}
+% TODO: describe NYU-v2, KITTI, and any additional datasets used.
+
+\subsection{Metrics}
+\label{sec:metrics}
+% TODO: list AbsRel, RMSE, $\delta_1$, $\delta_2$, $\delta_3$, etc.
+
+\subsection{Implementation Details}
+\label{sec:impl}
+% TODO: report optimizer, schedule, batch size, hardware.
+
+\subsection{Results}
+\label{sec:results}
+% TODO: report quantitative and qualitative results.
+
+\subsection{Ablation Studies}
+\label{sec:ablation}
+% TODO: ablate distillation weight, edge-aware loss, and backbone choices.
+
+\section{Conclusion}
+\label{sec:conclusion}
+% TODO: summarize findings and discuss limitations / future work.
+
+\paragraph{Author Contributions.}
+% TODO: describe each author's contributions.
+
+%%%%%%%%% REFERENCES
+{
+    \small
+    \bibliographystyle{ieee_fullname}
+    % TODO: remove \nocite{*} once real citations are placed throughout the paper.
+    \nocite{*}
+    \bibliography{refs}
+}
+
+\end{document}

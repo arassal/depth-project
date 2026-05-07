@@ -8,10 +8,10 @@ model:
   image_std: [0.229, 0.224, 0.225]
 
 data:
-  root: /home/alexander/depth-project
-  train_split: /home/alexander/depth-project/data/manifests/train_multi.txt
-  val_split: /home/alexander/depth-project/data/nyu_v2_poc/splits/val.txt
-  test_split: /home/alexander/depth-project/data/nyu_v2_poc/splits/test.txt
+  root: .
+  train_split: data/manifests/train_multi.txt
+  val_split: data/nyu_v2_poc/splits/val.txt
+  test_split: data/nyu_v2_poc/splits/test.txt
   min_depth: 0.001
   max_depth: 10.0
 
@@ -24,12 +24,12 @@ train:
   grad_clip_norm: 1.0
   log_every: 20
   val_every_epoch: true
-  save_path: /home/alexander/depth-project/checkpoints/poc_multi_dataset_best.pt
-  history_path: /home/alexander/depth-project/outputs/metrics/poc_multi_dataset_history.jsonl
+  save_path: checkpoints/poc_multi_dataset_best.pt
+  history_path: outputs/metrics/poc_multi_dataset_history.jsonl
 
 eval:
-  checkpoint: /home/alexander/depth-project/checkpoints/poc_multi_dataset_best.pt
-  summary_path: /home/alexander/depth-project/outputs/metrics/poc_multi_dataset_test_summary.json
-  per_image_path: /home/alexander/depth-project/outputs/metrics/poc_multi_dataset_test_per_image.csv
-  preview_dir: /home/alexander/depth-project/outputs/predictions/poc_multi_dataset_test
+  checkpoint: checkpoints/poc_multi_dataset_best.pt
+  summary_path: outputs/metrics/poc_multi_dataset_test_summary.json
+  per_image_path: outputs/metrics/poc_multi_dataset_test_per_image.csv
+  preview_dir: outputs/predictions/poc_multi_dataset_test
   num_preview_samples: -1
