@@ -2,9 +2,9 @@
 __pycache__/
 *.pyc
 
-data/
-checkpoints/
-outputs/
+/data/
+/checkpoints/
+/outputs/
 
 .DS_Store
 references/

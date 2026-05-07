@@ -1,0 +1,65 @@
+[
+  {
+    "run_idx": 0,
+    "config_overrides": {
+      "grad_weight": 0.0,
+      "alpha": 0.7,
+      "learning_rate": 1e-07
+    },
+    "derived_config": "outputs/sweeps/beta/configs/run_0.yaml",
+    "metrics_path": "outputs/sweeps/beta/run_0/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.15183797434477483,
+      "rmse": 0.5320026896641417,
+      "rmse_log": 0.674556378275156,
+      "log10": 0.10520083872380398,
+      "delta1": 0.8141580355369439,
+      "delta2": 0.9337072857355667,
+      "delta3": 0.9660230733580508,
+      "num_samples": 59
+    }
+  },
+  {
+    "run_idx": 1,
+    "config_overrides": {
+      "grad_weight": 0.1,
+      "alpha": 0.7,
+      "learning_rate": 1e-07
+    },
+    "derived_config": "outputs/sweeps/beta/configs/run_1.yaml",
+    "metrics_path": "outputs/sweeps/beta/run_1/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.1520533257369268,
+      "rmse": 0.5337880956545725,
+      "rmse_log": 0.6674024479747829,
+      "log10": 0.10437122584020687,
+      "delta1": 0.8157744326833951,
+      "delta2": 0.9342560848947299,
+      "delta3": 0.9664177328853284,
+      "num_samples": 59
+    }
+  },
+  {
+    "run_idx": 2,
+    "config_overrides": {
+      "grad_weight": 0.3,
+      "alpha": 0.7,
+      "learning_rate": 1e-07
+    },
+    "derived_config": "outputs/sweeps/beta/configs/run_2.yaml",
+    "metrics_path": "outputs/sweeps/beta/run_2/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.1504672171579579,
+      "rmse": 0.5262118574800128,
+      "rmse_log": 0.6922709591749866,
+      "log10": 0.10662204397337163,
+      "delta1": 0.8164028878939353,
+      "delta2": 0.93491014383607,
+      "delta3": 0.9664640264996027,
+      "num_samples": 59
+    }
+  }
+]

@@ -11,7 +11,15 @@ import pandas as pd
 def load_results(path: Path) -> pd.DataFrame:
     with path.open("r", encoding="utf-8") as handle:
         rows = json.load(handle)
-    return pd.DataFrame(rows)
+    flat = []
+    for r in rows:
+        if r.get("status") != "ok":
+            continue
+        out = {"run_idx": r["run_idx"]}
+        out.update(r.get("config_overrides", {}))
+        out.update(r.get("metrics", {}))
+        flat.append(out)
+    return pd.DataFrame(flat)
 
 
 def line_plot(df: pd.DataFrame, x: str, y: str, output: Path, title: str | None = None) -> None:
