@@ -1,40 +1,49 @@
 # Depth Project
 
-Monocular depth proof of concept built from the original `Depth Anything` presentation, then turned into a runnable repo with training, evaluation, plots, qualitative outputs, a web demo, and presentation assets.
+Monocular depth proof of concept built from the original `Depth Anything` presentation, then extended into a closer paper-style teacher-student workflow.
 
 ## What This Repo Shows
 - model: `LiheYoung/depth-anything-small-hf`
-- task: monocular relative depth estimation
-- indoor benchmark: `NYU-v2` proof-of-concept subset
-- second dataset demo: `KITTI Tiny`
-- outputs: metrics, plots, qualitative panels, presentation pages, `.pptx`, uploadable local web demo
+- architecture: `Depth Anything Small` / DPT-style monocular depth estimation
+- benchmark: `NYU-v2` proof-of-concept subset
+- teacher-student expansion: `450` labeled indoor images plus `2000` teacher-pseudo-labeled indoor images
+- outputs: metrics, plots, qualitative panels, comparison galleries, HTML presentation, `.pptx`, local upload demo
 
-This is a real result, not a mockup. The pretrained zero-shot model worked well as a relative-depth system. The small supervised fine-tune on a tiny local subset overfit and performed worse on the held-out test split.
+## Final Story
+This repo now shows three stages instead of just one:
+1. zero-shot teacher
+2. small supervised-only student
+3. teacher-student student trained on labeled plus pseudo-labeled data
 
-## Final PoC Result
+That is much closer to the original paper’s story than the first PoC version.
 
-| Run | AbsRel | delta1 | Test images |
-| --- | ---: | ---: | ---: |
-| Zero-shot | `0.1467` | `0.8381` | `59` |
-| Fine-tuned | `0.1810` | `0.7163` | `59` |
+## Main Results
+
+| Run | Training data | AbsRel | delta1 | Test images |
+| --- | --- | ---: | ---: | ---: |
+| Zero-shot teacher | pretrained only | `0.1467` | `0.8381` | `59` |
+| Supervised-only student | `450` labeled | `0.1810` | `0.7163` | `59` |
+| Teacher-student run | `450` labeled + `2000` pseudo-labeled | `0.1682` | `0.7531` | `59` |
 
 Interpretation:
-- the system is doing real depth estimation
-- the pretrained model is the strongest result in this repo
-- the two-epoch fine-tune on `450` train images overfit the small split
+- the zero-shot teacher is still the best overall result
+- the teacher-student run improved over the small supervised-only student
+- the added pseudo-labeled data helped, but not enough to beat the teacher
 
-## Dataset Sizes
-- train: `450`
-- val: `60`
-- test: `59`
+## Data Growth
+- labeled seed set: `450`
+- validation set: `60`
+- held-out test set: `59`
+- pseudo-labeled indoor expansion: `2000`
+- total teacher-student training set: `2450`
 
-## Diagnostics Run
-- split counts verified from manifest files
-- metrics summaries verified against saved JSON outputs
-- source tree compiled with `python -m compileall src`
-- `DepthEstimationPipeline` loaded successfully from `LiheYoung/depth-anything-small-hf`
+![Teacher-student data growth](docs/assets/figures/data_growth.png)
 
-Full note: [docs/diagnostics.md](docs/diagnostics.md)
+## Why This Matches The Paper Better
+- architecture stayed the same
+- data scale increased through pseudo-labeling rather than architecture changes
+- the student was trained on more data than the original labeled seed set
+- the repo now explicitly shows `teacher -> pseudo labels -> student retraining`
 
 ## What The Images Mean
 The NYU-v2 qualitative panels are laid out as:
@@ -43,34 +52,36 @@ The NYU-v2 qualitative panels are laid out as:
 - `Pred` predicted depth
 - `Error` aligned pixelwise error
 
-These panels are best read as a relative-depth check:
-- does the model separate foreground from background?
-- does it preserve large scene layout?
-- do object boundaries land in roughly the right place?
+The teacher pseudo-label panels are laid out as:
+- `Unlabeled RGB`
+- `Teacher pseudo-depth`
 
 ## Key Figures
 
-### Training Curves
-![Loss vs epoch](docs/assets/figures/loss_vs_epoch.png)
-![Validation AbsRel vs epoch](docs/assets/figures/val_absrel_vs_epoch.png)
-![Validation delta1 vs epoch](docs/assets/figures/val_delta1_vs_epoch.png)
+### Three-Run Comparison
+![Run comparison](docs/assets/figures/run_comparison.png)
 
-### NYU-v2 Qualitative Example
-Zero-shot:
+### Teacher-Student Training Curves
+![Teacher-student loss](docs/assets/figures/teacher_student_loss_vs_epoch.png)
+![Teacher-student validation AbsRel](docs/assets/figures/teacher_student_val_absrel_vs_epoch.png)
+![Teacher-student validation delta1](docs/assets/figures/teacher_student_val_delta1_vs_epoch.png)
 
-![NYU zero-shot example](docs/assets/figures/nyu_zero_shot_000000.png)
+### NYU-v2 Sample 000000
+Zero-shot teacher:
 
-Fine-tuned:
+![Zero-shot sample](docs/assets/figures/nyu_zero_shot_000000.png)
 
-![NYU fine-tuned example](docs/assets/figures/nyu_finetuned_000000.png)
+Supervised-only student:
 
-Second zero-shot example:
+![Supervised-only sample](docs/assets/figures/nyu_finetuned_000000.png)
 
-![NYU zero-shot example 2](docs/assets/figures/nyu_zero_shot_000004.png)
+Teacher-student run:
 
-Second fine-tuned example:
+![Teacher-student sample](docs/assets/figures/teacher_student_000000.png)
 
-![NYU fine-tuned example 2](docs/assets/figures/nyu_finetuned_000004.png)
+### Teacher Pseudo-Label Examples
+![Teacher pseudo sample 1](docs/assets/figures/teacher_pseudo_00.png)
+![Teacher pseudo sample 2](docs/assets/figures/teacher_pseudo_01.png)
 
 ### KITTI Tiny Demo Example
 Input frame:
@@ -86,35 +97,39 @@ Predicted depth:
 - presentation page: [docs/presentation.html](docs/presentation.html)
 - pptx: [docs/DepthProjectPresentation.pptx](docs/DepthProjectPresentation.pptx)
 - diagnostics note: [docs/diagnostics.md](docs/diagnostics.md)
+- multi-dataset note: [docs/multi_dataset_workflow.md](docs/multi_dataset_workflow.md)
 
 Desktop package:
 - `/home/alexander/Desktop/DepthProjectDemo`
 
-## Progressive Dataset Expansion
-The clean way to add more datasets is:
-- keep `NYU-v2` as the first benchmark and evaluation anchor
-- add a second labeled dataset by generating its manifest
-- merge train manifests with absolute paths
-- keep validation and test fixed while the train set grows
-
-Workflow note: [docs/multi_dataset_workflow.md](docs/multi_dataset_workflow.md)
-
-Merge example:
+## Teacher-Student Commands
+Export the indoor pseudo-label pool:
 
 ```bash
 cd /home/alexander/depth-project
 source .venv/bin/activate
-python src/merge_manifests.py \
-  --absolute-paths \
-  --manifest /home/alexander/depth-project/data/nyu_v2_poc/splits/train.txt \
-  --manifest /path/to/second_dataset/splits/train.txt \
-  --output /home/alexander/depth-project/data/manifests/train_multi.txt
+python src/prepare_indoor_pseudo_pool.py \
+  --root /home/alexander/depth-project/data/unlabeled/indoor_teacher_pool \
+  --limit 2000
 ```
 
-Then train with:
+Generate pseudo labels with the teacher:
 
 ```bash
-python src/train.py --config configs/poc_multi_dataset_template.yaml
+python src/pseudo_label.py --config configs/teacher_student_poc.yaml
+```
+
+Train the student:
+
+```bash
+python src/train.py --config configs/teacher_student_poc.yaml
+```
+
+Evaluate the student:
+
+```bash
+python src/eval.py --config configs/teacher_student_poc.yaml \
+  --checkpoint checkpoints/teacher_student_poc_best.pt
 ```
 
 ## Local Web Demo
@@ -132,34 +147,7 @@ Then open:
 http://127.0.0.1:8000
 ```
 
-This runs zero-shot inference on uploaded RGB images and saves outputs under `outputs/web_demo/`.
-
-## Training Commands
-Prepare the full NYU-v2 export:
-
-```bash
-cd /home/alexander/depth-project
-source .venv/bin/activate
-python src/prepare_nyu_v2.py --root /home/alexander/depth-project/data/nyu_v2 --val-count 512
-```
-
-Train:
-
-```bash
-python src/train.py --config configs/baseline.yaml
-```
-
-Evaluate:
-
-```bash
-python src/eval.py --config configs/baseline.yaml --checkpoint checkpoints/baseline_best.pt
-```
-
-Generate plots:
-
-```bash
-python src/plots.py --metrics-log outputs/metrics/baseline_history.jsonl --per-image outputs/metrics/baseline_test_per_image.csv --output-dir outputs/plots/baseline
-```
+This runs the pretrained zero-shot teacher on uploaded RGB images and saves outputs under `outputs/web_demo/`.
 
 ## Honest Conclusion
-This repo is a successful depth-estimation proof of concept, not a claim of successful task-specific fine-tuning. The zero-shot model is accurate enough to demonstrate meaningful depth structure. The custom fine-tuning recipe needs more data or better tuning before it should be presented as an improvement.
+The project now matches the original paper’s logic much more closely: start with a strong teacher, expand the dataset with pseudo labels, and train a student on more data. In this local run, the student improved over the small supervised-only baseline but still did not surpass the pretrained teacher.

@@ -11,84 +11,54 @@
       <header class="hero">
         <div class="hero-grid">
           <section>
-            <span class="eyebrow">Depth Anything • Demo Site</span>
-            <h1>Implementation status, measured results, and demo artifacts.</h1>
-            <p class="lead">This page turns the original presentation into a concrete project view: what was built, what was tested, what the outputs look like, and what the completed proof-of-concept actually measured on NYU-v2 and KITTI Tiny.</p>
+            <span class="eyebrow">Depth Anything • Results</span>
+            <h1>Teacher, student, pseudo labels, and measured outcomes.</h1>
+            <p class="lead">This project now follows the original paper story more closely: keep the Depth Anything Small architecture fixed, start from a strong teacher, expand the dataset with pseudo labels, and train a student on more data than the initial labeled seed set.</p>
           </section>
           <aside class="panel">
             <h2>Project snapshot</h2>
             <div class="stats">
               <div class="metric">
-                <span class="label">Repository</span>
-                <span class="value">Live</span>
-              </div>
-              <div class="metric">
                 <span class="label">Model</span>
                 <span class="value">DA-S</span>
               </div>
               <div class="metric">
-                <span class="label">Dataset</span>
-                <span class="value">NYU-v2</span>
+                <span class="label">Labeled seed</span>
+                <span class="value">450</span>
               </div>
               <div class="metric">
-                <span class="label">Status</span>
-                <span class="value">Measured</span>
+                <span class="label">Pseudo labels</span>
+                <span class="value">2000</span>
+              </div>
+              <div class="metric">
+                <span class="label">Student total</span>
+                <span class="value">2450</span>
               </div>
             </div>
-            <p class="footer-note">As of May 7, 2026, the proof-of-concept experiment is complete on a clean NYU-v2 subset. The useful result is that the small fine-tune overfit and underperformed the zero-shot baseline on the held-out test subset.</p>
+            <p class="footer-note">As of May 7, 2026, the teacher-student run is complete. It improved over the tiny supervised-only student but still did not beat the pretrained zero-shot teacher.</p>
           </aside>
         </div>
       </header>
 
       <section class="section grid-3">
         <article class="card">
-          <h3>Paper story preserved</h3>
-          <p>The repo keeps the original presentation’s structure: relative depth reasoning, Depth Anything Small, NYU-v2 evaluation, and an optional pseudo-label self-training extension.</p>
+          <h3>Architecture stayed fixed</h3>
+          <p>The project did not change the core Depth Anything Small architecture. The main change was data scale through pseudo-label expansion.</p>
         </article>
         <article class="card">
-          <h3>Built for this machine</h3>
-          <p>The implementation is sized for an RTX 3050 4GB system, which means conservative image size, conservative batch size, and a lean training loop instead of a paper-scale reproduction.</p>
+          <h3>Paper story matched better</h3>
+          <p>The repo now explicitly shows <code>teacher -&gt; pseudo labels -&gt; student retraining</code> instead of stopping at a tiny supervised fine-tune.</p>
         </article>
         <article class="card">
-          <h3>Published and testable</h3>
-          <p>The project is in GitHub, the environment is installed, the checkpoint loads, and a small curated set of real result images is now versioned in the docs.</p>
-        </article>
-      </section>
-
-      <section class="section grid-2">
-        <article class="panel">
-          <h2>What exists now</h2>
-          <div class="artifact-list">
-            <div class="artifact"><strong>GitHub repo</strong><code>https://github.com/arassal/depth-project</code></div>
-            <div class="artifact"><strong>Diagnostics note</strong><span class="path">/home/alexander/depth-project/docs/diagnostics.md</span></div>
-            <div class="artifact"><strong>Slide deck</strong><span class="path">/home/alexander/depth-project/docs/presentation.html</span></div>
-            <div class="artifact"><strong>Results webpage</strong><span class="path">/home/alexander/depth-project/docs/results.html</span></div>
-            <div class="artifact"><strong>PPTX deck</strong><span class="path">/home/alexander/depth-project/docs/DepthProjectPresentation.pptx</span></div>
-          </div>
-        </article>
-        <article class="panel">
-          <h2>Project status</h2>
-          <div class="timeline">
-            <div class="timeline-item">
-              <strong><span class="status"><span class="dot ok"></span>Completed</span></strong>
-              Repo creation, environment install, checkpoint validation, training/eval/plot code, subset export, zero-shot eval, fine-tuning, plots, image galleries, web demo, and presentation assets.
-            </div>
-            <div class="timeline-item">
-              <strong><span class="status"><span class="dot warn"></span>Finding</span></strong>
-              The two-epoch fine-tune improved validation metrics but degraded test metrics on the PoC split, which points to overfitting rather than a successful adaptation.
-            </div>
-            <div class="timeline-item">
-              <strong><span class="status"><span class="dot pending"></span>Next best improvement</span></strong>
-              Increase data volume or retune learning settings before claiming that the fine-tuned checkpoint is better than the pretrained zero-shot model.
-            </div>
-          </div>
+          <h3>Measured, not invented</h3>
+          <p>All numbers on this page come from completed local runs on the held-out NYU-v2 subset test split.</p>
         </article>
       </section>
 
       <section class="section result-shell">
         <article class="panel">
-          <h2>Metrics dashboard</h2>
-          <p>These are the actual test results from the completed NYU-v2 subset proof-of-concept run.</p>
+          <h2>Three-run metrics dashboard</h2>
+          <p>Held-out test results on the `59`-image NYU-v2 subset.</p>
           <div class="grid-2">
             <div class="metric">
               <span class="label">Zero-shot AbsRel</span>
@@ -99,78 +69,53 @@
               <span class="value">0.8381</span>
             </div>
             <div class="metric">
-              <span class="label">Fine-tuned AbsRel</span>
+              <span class="label">Supervised-only AbsRel</span>
               <span class="value">0.1810</span>
             </div>
             <div class="metric">
-              <span class="label">Fine-tuned delta1</span>
+              <span class="label">Supervised-only delta1</span>
               <span class="value">0.7163</span>
             </div>
-          </div>
-          <div class="bar-chart">
-            <div class="bar-row"><span>Environment</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>done</strong></div>
-            <div class="bar-row"><span>Dataset prep</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>subset done</strong></div>
-            <div class="bar-row"><span>Training</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>done</strong></div>
-            <div class="bar-row"><span>Evaluation</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>done</strong></div>
+            <div class="metric">
+              <span class="label">Teacher-student AbsRel</span>
+              <span class="value">0.1682</span>
+            </div>
+            <div class="metric">
+              <span class="label">Teacher-student delta1</span>
+              <span class="value">0.7531</span>
+            </div>
           </div>
         </article>
         <aside class="result-placeholder">
           <h3>Main conclusion</h3>
-          <p>The fine-tuned checkpoint performed worse than the zero-shot baseline on the held-out test subset. That makes this run a valid proof-of-concept and a useful hyperparameter-analysis artifact, not a fake success story.</p>
           <ul class="list">
-            <li>validation still improved across epochs</li>
-            <li>test performance dropped after fine-tuning</li>
-            <li>the result suggests overfitting on a small training subset</li>
-            <li>all 59 before/after image panels were saved for inspection</li>
+            <li>The zero-shot teacher remains the strongest overall model</li>
+            <li>The teacher-student run improved over the supervised-only student</li>
+            <li>The extra `2000` pseudo-labeled indoor images closed part of the gap</li>
+            <li>The local student still trails the pretrained teacher on held-out test data</li>
           </ul>
         </aside>
       </section>
 
       <section class="section">
         <article class="panel">
-          <h2>Diagnostics summary</h2>
-          <div class="grid-2">
-            <div class="metric">
-              <span class="label">Split counts</span>
-              <span class="value">450 / 60 / 59</span>
-            </div>
-            <div class="metric">
-              <span class="label">Model load</span>
-              <span class="value">passed</span>
-            </div>
-            <div class="metric">
-              <span class="label">Source compile</span>
-              <span class="value">passed</span>
-            </div>
-            <div class="metric">
-              <span class="label">Artifacts</span>
-              <span class="value">saved</span>
-            </div>
-          </div>
-          <p class="footer-note">Full note: <a href="diagnostics.md">diagnostics.md</a></p>
-        </article>
-      </section>
-
-      <section class="section">
-        <article class="panel">
-          <h2>How to read the NYU-v2 panels</h2>
-          <p>Each saved panel is organized as <code>RGB | GT | Pred | Error</code>. The main question is whether the model preserves the large scene layout and the near-versus-far ordering, not whether it produces exact real-world distance in meters from a single photo.</p>
+          <h2>Data growth and pseudo-label expansion</h2>
           <div class="gallery-grid">
             <figure class="figure-card">
-              <img src="assets/figures/nyu_zero_shot_000000.png" alt="Zero-shot NYU-v2 panel">
-              <figcaption>Zero-shot example. The pretrained model preserves the room structure and depth ordering well.</figcaption>
+              <img src="assets/figures/data_growth.png" alt="Teacher-student data growth">
+              <figcaption>The student was trained on `2450` images total: `450` labeled NYU-v2 images plus `2000` teacher-pseudo-labeled indoor images.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/nyu_finetuned_000000.png" alt="Fine-tuned NYU-v2 panel">
-              <figcaption>Fine-tuned example on the same test image. The result is softer and quantitatively worse on the held-out set.</figcaption>
+              <img src="assets/figures/run_comparison.png" alt="Three-run comparison chart">
+              <figcaption>The teacher-student run improved over the small supervised student, but the zero-shot teacher is still best.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/nyu_zero_shot_000004.png" alt="Second zero-shot NYU-v2 panel">
-              <figcaption>Second zero-shot example. Boundaries and relative scene shape are still coherent.</figcaption>
+              <img src="assets/figures/teacher_pseudo_00.png" alt="Teacher pseudo label sample one">
+              <figcaption>Example unlabeled indoor image and the teacher’s pseudo-depth map.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/nyu_finetuned_000004.png" alt="Second fine-tuned NYU-v2 panel">
-              <figcaption>Second fine-tuned example. This run shows the same overfitting pattern rather than a sharper reconstruction.</figcaption>
+              <img src="assets/figures/teacher_pseudo_01.png" alt="Teacher pseudo label sample two">
+              <figcaption>Second pseudo-label example from the indoor expansion pool.</figcaption>
             </figure>
           </div>
         </article>
@@ -178,23 +123,48 @@
 
       <section class="section">
         <article class="panel">
-          <h2>Training curves and test spread</h2>
+          <h2>How to read the model outputs</h2>
+          <p>Each NYU-v2 panel is organized as <code>RGB | GT | Pred | Error</code>. The key question is whether the model preserves large scene structure and relative depth ordering. The system should be interpreted as relative depth estimation, not exact metric distance measurement from one image.</p>
+          <div class="gallery-grid">
+            <figure class="figure-card">
+              <img src="assets/figures/nyu_zero_shot_000000.png" alt="Zero-shot teacher panel">
+              <figcaption>Zero-shot teacher on sample `000000`.</figcaption>
+            </figure>
+            <figure class="figure-card">
+              <img src="assets/figures/nyu_finetuned_000000.png" alt="Supervised-only student panel">
+              <figcaption>Supervised-only student on the same sample.</figcaption>
+            </figure>
+            <figure class="figure-card">
+              <img src="assets/figures/teacher_student_000000.png" alt="Teacher-student panel">
+              <figcaption>Teacher-student run on the same sample.</figcaption>
+            </figure>
+            <figure class="figure-card">
+              <img src="assets/figures/teacher_student_000004.png" alt="Teacher-student second panel">
+              <figcaption>Second teacher-student qualitative example from the held-out test set.</figcaption>
+            </figure>
+          </div>
+        </article>
+      </section>
+
+      <section class="section">
+        <article class="panel">
+          <h2>Teacher-student training curves</h2>
           <div class="gallery-grid gallery-grid-wide">
             <figure class="figure-card">
-              <img src="assets/figures/loss_vs_epoch.png" alt="Training loss by epoch">
-              <figcaption>Training loss decreased across the two-epoch run.</figcaption>
+              <img src="assets/figures/teacher_student_loss_vs_epoch.png" alt="Teacher-student loss">
+              <figcaption>Training and validation loss for the one-epoch teacher-student run.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/val_absrel_vs_epoch.png" alt="Validation AbsRel by epoch">
-              <figcaption>Validation AbsRel improved during training, which looked promising locally.</figcaption>
+              <img src="assets/figures/teacher_student_val_absrel_vs_epoch.png" alt="Teacher-student validation AbsRel">
+              <figcaption>Validation AbsRel after training on the expanded dataset.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/val_delta1_vs_epoch.png" alt="Validation delta1 by epoch">
-              <figcaption>Validation delta1 also improved, but the held-out test split still got worse.</figcaption>
+              <img src="assets/figures/teacher_student_val_delta1_vs_epoch.png" alt="Teacher-student validation delta1">
+              <figcaption>Validation delta1 after the teacher-student run.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/test_absrel_histogram.png" alt="Per-image test AbsRel histogram">
-              <figcaption>Per-image test error distribution from the saved evaluation outputs.</figcaption>
+              <img src="assets/figures/teacher_student_test_absrel_histogram.png" alt="Teacher-student test histogram">
+              <figcaption>Per-image AbsRel histogram from the teacher-student held-out test run.</figcaption>
             </figure>
           </div>
         </article>
@@ -202,90 +172,56 @@
 
       <section class="section grid-2">
         <article class="panel">
-          <h2>Baseline commands</h2>
+          <h2>Exact teacher-student workflow</h2>
           <pre class="code-block">cd /home/alexander/depth-project
 source .venv/bin/activate
-python src/prepare_nyu_v2.py \
-  --root /home/alexander/depth-project/data/nyu_v2 \
-  --val-count 512
+python src/prepare_indoor_pseudo_pool.py \
+  --root data/unlabeled/indoor_teacher_pool \
+  --limit 2000
 
-python src/train.py --config configs/baseline.yaml
-python src/eval.py --config configs/baseline.yaml \
-  --checkpoint checkpoints/baseline_best.pt
-
-python src/plots.py \
-  --metrics-log outputs/metrics/baseline_history.jsonl \
-  --per-image outputs/metrics/baseline_test_per_image.csv \
-  --output-dir outputs/plots/baseline</pre>
+python src/pseudo_label.py --config configs/teacher_student_poc.yaml
+python src/train.py --config configs/teacher_student_poc.yaml
+python src/eval.py --config configs/teacher_student_poc.yaml \
+  --checkpoint checkpoints/teacher_student_poc_best.pt</pre>
         </article>
         <article class="panel">
-          <h2>Why this counts as a full demo</h2>
+          <h2>Why this is the honest claim</h2>
           <ul class="list">
-            <li>The original presentation theory is represented</li>
-            <li>The repo and training code are real, not mockups</li>
-            <li>The dataset workflow is automated</li>
-            <li>The qualitative outputs and plots were generated from a completed run</li>
-            <li>The page now includes versioned figures that make the result understandable to an untrained viewer</li>
+            <li>The architecture stayed fixed</li>
+            <li>The dataset grew through pseudo labeling</li>
+            <li>The student improved over the tiny supervised baseline</li>
+            <li>The pretrained teacher remained stronger on the held-out test set</li>
+            <li>This is a valid proof of concept for the original teacher-student idea at local scale</li>
           </ul>
-        </article>
-      </section>
-
-      <section class="section grid-2">
-        <article class="card">
-          <h3>Open the slide deck</h3>
-          <p><a href="presentation.html">presentation.html</a></p>
-        </article>
-        <article class="card">
-          <h3>Open the before/after gallery</h3>
-          <p><a href="../outputs/predictions/poc_compare_gallery.html">poc_compare_gallery.html</a></p>
         </article>
       </section>
 
       <section class="section grid-2">
         <article class="panel">
           <h2>Second dataset: KITTI Tiny</h2>
-          <p>KITTI Tiny is included as a zero-shot outdoor driving demo to show that the pretrained model is not locked to indoor scenes.</p>
           <div class="gallery-grid">
             <figure class="figure-card">
-              <img src="assets/figures/kitti_input_0000000000.png" alt="KITTI input frame">
+              <img src="assets/figures/kitti_input_0000000000.png" alt="KITTI input">
               <figcaption>Raw KITTI frame.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/kitti_depth_0000000000.png" alt="KITTI predicted depth map">
-              <figcaption>Predicted depth map from the same frame.</figcaption>
+              <img src="assets/figures/kitti_depth_0000000000.png" alt="KITTI depth">
+              <figcaption>Zero-shot teacher depth prediction on the same frame.</figcaption>
             </figure>
           </div>
         </article>
         <article class="panel">
-          <h2>What this demonstrates</h2>
+          <h2>Open next</h2>
           <ul class="list">
-            <li>The pretrained model generalizes to an outdoor scene without extra tuning</li>
-            <li>The output is most trustworthy as relative depth structure</li>
-            <li>The second dataset is useful because it shows indoor and outdoor behavior side by side</li>
+            <li><a href="presentation.html">Presentation page</a></li>
+            <li><a href="../outputs/predictions/teacher_student_compare_gallery.html">Three-way comparison gallery</a></li>
+            <li><a href="https://github.com/arassal/depth-project">GitHub repository</a></li>
+            <li><a href="diagnostics.md">Diagnostics note</a></li>
           </ul>
         </article>
       </section>
 
-      <section class="section grid-2">
-        <article class="panel">
-          <h2>Interactive Upload Demo</h2>
-          <p>You can run a live local web app that accepts any uploaded image and generates a depth map with the pretrained model.</p>
-          <pre class="code-block">cd /home/alexander/depth-project
-source .venv/bin/activate
-python src/demo_web_app.py</pre>
-          <p>Then open <code>http://127.0.0.1:8000</code> in the browser.</p>
-        </article>
-        <article class="panel">
-          <h2>What to expect</h2>
-          <ul class="list">
-            <li>The upload demo runs zero-shot inference, not the overfit fine-tuned checkpoint</li>
-            <li>It is best at relative depth structure, not perfect metric depth</li>
-            <li>Uploaded inputs and generated depth images are saved under <code>outputs/web_demo/</code></li>
-          </ul>
-        </article>
-      </section>
-
-      <p class="footer-note">This page is intentionally honest: the zero-shot baseline beat the small fine-tuned model on the held-out subset, and that outcome is exactly the kind of result a credible proof-of-concept presentation should surface.</p>
+      <p class="footer-note">The most accurate summary is simple: the local teacher-student pipeline made the student better than the tiny supervised baseline, but the pretrained teacher still won on the held-out test subset.</p>
     </main>
   </body>
 </html>

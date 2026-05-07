@@ -8,7 +8,7 @@ import torch
 from PIL import Image
 from tqdm import tqdm
 
-from common import get_device, load_config
+from common import get_device, load_config, write_json
 from modeling import forward_depth, load_model
 
 
@@ -21,6 +21,12 @@ def load_image(path: Path, image_size: int) -> torch.Tensor:
     return (tensor - mean) / std
 
 
+def sample_id_from_path(root: Path, image_path: Path) -> str:
+    relative = image_path.relative_to(root)
+    safe = "__".join(relative.with_suffix("").parts)
+    return safe
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -31,9 +37,13 @@ def main() -> None:
     device = get_device()
     _, model = load_model(config["model"]["pretrained_name"])
 
-    checkpoint_path = args.checkpoint or config["pseudo"]["teacher_checkpoint"]
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    teacher_mode = config["pseudo"].get("teacher_mode", "checkpoint")
+    checkpoint_path = args.checkpoint or config["pseudo"].get("teacher_checkpoint")
+    if teacher_mode == "checkpoint":
+        if not checkpoint_path:
+            raise ValueError("teacher_mode=checkpoint requires a checkpoint path")
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+        model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
     model.eval()
 
@@ -43,18 +53,36 @@ def main() -> None:
     output_root.mkdir(parents=True, exist_ok=True)
 
     records = []
+    num_images = 0
     with torch.no_grad():
         for image_path in tqdm(sorted(unlabeled_root.rglob(source_glob)), desc="pseudo", leave=False):
             pixel_values = load_image(image_path, config["model"]["image_size"]).unsqueeze(0).to(device)
             pred = forward_depth(model, pixel_values)[0].cpu().numpy().astype(np.float32)
-            depth_path = output_root / f"{image_path.stem}.npy"
+            sample_id = sample_id_from_path(unlabeled_root, image_path)
+            depth_path = output_root / f"{sample_id}.npy"
             np.save(depth_path, pred)
             records.append(f"{image_path} {depth_path}")
+            num_images += 1
 
     manifest_path = Path(config["data"]["pseudo_manifest"])
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     with manifest_path.open("w", encoding="utf-8") as handle:
-        handle.write("\n".join(records))
+        handle.write("\n".join(records) + ("\n" if records else ""))
+
+    summary_path = config["pseudo"].get("summary_path")
+    if summary_path:
+        write_json(
+            summary_path,
+            {
+                "teacher_mode": teacher_mode,
+                "teacher_checkpoint": checkpoint_path,
+                "unlabeled_root": str(unlabeled_root),
+                "num_images": num_images,
+                "output_root": str(output_root),
+                "manifest_path": str(manifest_path),
+            },
+        )
+    print({"teacher_mode": teacher_mode, "num_images": num_images, "manifest_path": str(manifest_path)})
 
 
 if __name__ == "__main__":

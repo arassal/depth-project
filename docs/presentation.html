@@ -11,19 +11,20 @@
     <nav class="slide-nav">
       <div>
         <strong>Depth Anything Demo Deck</strong><br>
-        <span class="status"><span class="dot ok"></span>PoC results are populated from a completed NYU-v2 subset run</span>
+        <span class="status"><span class="dot ok"></span>Teacher-student run completed on NYU-v2 subset plus 2000 pseudo-labeled indoor images</span>
       </div>
       <div class="links">
         <a href="#slide-1">Intro</a>
-        <a href="#slide-2">Problem</a>
-        <a href="#slide-3">Paper</a>
-        <a href="#slide-4">Translation</a>
-        <a href="#slide-5">Implementation</a>
-        <a href="#slide-6">Dataset</a>
-        <a href="#slide-7">Workflow</a>
-        <a href="#slide-8">Outputs</a>
-        <a href="#slide-9">Status</a>
-        <a href="#slide-10">Close</a>
+        <a href="#slide-2">Paper</a>
+        <a href="#slide-3">Model</a>
+        <a href="#slide-4">Data</a>
+        <a href="#slide-5">Pipeline</a>
+        <a href="#slide-6">Results</a>
+        <a href="#slide-7">Pseudo</a>
+        <a href="#slide-8">Compare</a>
+        <a href="#slide-9">Plots</a>
+        <a href="#slide-10">Extra</a>
+        <a href="#slide-11">Close</a>
       </div>
     </nav>
 
@@ -32,23 +33,23 @@
         <div class="slide-grid">
           <div>
             <div class="kicker">Depth Anything Project</div>
-            <h1>From paper presentation to runnable depth system.</h1>
-            <p class="lead">This deck shows the original presentation story, the engineering interpretation, the repo that was built, and the results pipeline that now exists for NYU-v2 fine-tuning and evaluation.</p>
+            <h1>From paper presentation to local teacher-student depth system.</h1>
+            <p class="lead">This version is no longer just a tiny supervised fine-tune. It now follows the original paper logic more closely: keep the architecture fixed, expand the data with pseudo labels, and train a student on more images than the labeled seed set.</p>
             <div class="pill-row" style="margin-top:20px;">
               <span class="pill">Depth Anything Small</span>
               <span class="pill">NYU-v2</span>
-              <span class="pill">AbsRel</span>
-              <span class="pill">delta1</span>
-              <span class="pill">Pseudo-label path</span>
+              <span class="pill">Teacher</span>
+              <span class="pill">Pseudo labels</span>
+              <span class="pill">Student</span>
             </div>
           </div>
           <div class="slide-card">
-            <h3>Deliverables</h3>
+            <h3>What changed</h3>
             <ul class="list">
-              <li>GitHub repository with training, eval, plotting, and dataset preparation code</li>
-              <li>Standalone testing runbook and demonstration report</li>
-              <li>Presentation page for project walkthrough</li>
-              <li>Web results page for demo and artifact review</li>
+              <li>Added a `2000` image indoor pseudo-label pool</li>
+              <li>Generated teacher pseudo-depth maps</li>
+              <li>Trained a student on `450` labeled plus `2000` pseudo-labeled images</li>
+              <li>Measured all three runs on the same held-out test split</li>
             </ul>
           </div>
         </div>
@@ -58,19 +59,14 @@
     <section class="slide" id="slide-2">
       <div class="slide-inner">
         <div class="slide-grid">
-          <div class="slide-card">
-            <div class="kicker">Why Depth</div>
-            <h2>Monocular depth is useful and fundamentally ambiguous.</h2>
-            <p class="quote">One RGB image can support strong relative depth structure, but not guaranteed absolute metric depth. That is why alignment and relative-depth training matter.</p>
+          <div>
+            <div class="kicker">Paper Claim</div>
+            <h2>Data scale is the story.</h2>
+            <p class="lead">The original paper’s headline is not a radically new architecture. It is a strong depth model plus much more training data, including pseudo-labeled data from a teacher-student pipeline.</p>
           </div>
           <div class="slide-card">
-            <h3>Use cases from the original presentation</h3>
-            <ul class="list">
-              <li>AR occlusion and 3D placement</li>
-              <li>Portrait effects and relighting</li>
-              <li>Navigation and robotics perception</li>
-              <li>3D reconstruction from ordinary photos</li>
-            </ul>
+            <div class="big-number">63.5M</div>
+            <p>The original recipe is huge. This project uses a local fraction of that idea: small labeled seed set, larger pseudo-labeled indoor pool, same core model family.</p>
           </div>
         </div>
       </div>
@@ -79,14 +75,23 @@
     <section class="slide" id="slide-3">
       <div class="slide-inner">
         <div class="slide-grid">
-          <div>
-            <div class="kicker">Paper Claim</div>
-            <h2>Data scale, not a new architecture, is the headline.</h2>
-            <p class="lead">The original paper uses a pretrained visual backbone, a familiar depth head, and a teacher-student pseudo-label pipeline. The main claim is that scaling data quality and data quantity pushes zero-shot generalization.</p>
+          <div class="slide-card">
+            <div class="kicker">Architecture</div>
+            <h2>What stayed fixed.</h2>
+            <ul class="list">
+              <li>Pretrained model: <code>LiheYoung/depth-anything-small-hf</code></li>
+              <li>Architecture family: Depth Anything Small / DPT-style monocular depth estimation</li>
+              <li>Input: single RGB image</li>
+              <li>Output: dense depth map</li>
+            </ul>
           </div>
           <div class="slide-card">
-            <div class="big-number">63.5M</div>
-            <p>Total images in the paper’s large-scale recipe. The local project does not fake this scale; it builds the same story in a realistic small-system form.</p>
+            <div class="kicker">Important distinction</div>
+            <ul class="list">
+              <li>The architecture did not change</li>
+              <li>The main experiment change was data scale through pseudo labels</li>
+              <li>This is best interpreted as relative depth estimation, not exact metric distance from one image</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -96,24 +101,18 @@
       <div class="slide-inner">
         <div class="slide-grid">
           <div class="slide-card">
-            <div class="kicker">Engineering Translation</div>
-            <h2>What was preserved from the slides.</h2>
-            <ul class="list">
-              <li>Depth Anything Small as the default model</li>
-              <li>NYU-v2 as the benchmark dataset</li>
-              <li>Affine-invariant training logic</li>
-              <li>Aligned AbsRel and delta1 evaluation</li>
-              <li>A later pseudo-label self-training stage</li>
-            </ul>
+            <div class="kicker">Dataset Growth</div>
+            <h2>Start small, then add more.</h2>
+            <div class="pill-row">
+              <span class="pill">450 labeled seed</span>
+              <span class="pill">2000 pseudo-labeled indoor</span>
+              <span class="pill">2450 student total</span>
+              <span class="pill">59-image held-out test</span>
+            </div>
+            <p class="lead" style="margin-top:16px;">This is the closest local version of the original paper story: the student trains on materially more data than the initial labeled set.</p>
           </div>
           <div class="slide-card">
-            <div class="kicker">What was intentionally cut</div>
-            <ul class="list">
-              <li>No fake reproduction of full 63.5M-image training</li>
-              <li>No oversized architecture changes</li>
-              <li>No metric-depth claims beyond what the pipeline supports</li>
-              <li>No results invented before the dataset and run complete</li>
-            </ul>
+            <img src="assets/figures/data_growth.png" alt="Data growth" style="width:100%;height:auto;border-radius:18px;">
           </div>
         </div>
       </div>
@@ -122,21 +121,23 @@
     <section class="slide" id="slide-5">
       <div class="slide-inner">
         <div class="slide-grid">
-          <div>
-            <div class="kicker">Implementation</div>
-            <h2>A complete repo now exists.</h2>
-            <p class="lead">The codebase includes dataset preparation, training, evaluation, plotting, pseudo-label generation, config files, GitHub setup, and local testing instructions.</p>
+          <div class="slide-card">
+            <div class="kicker">Teacher-Student Pipeline</div>
+            <h2>Actual local workflow.</h2>
+            <ol class="list">
+              <li>Take the pretrained Depth Anything Small model as the teacher</li>
+              <li>Export `2000` indoor RGB images into an unlabeled pool</li>
+              <li>Run the teacher on that pool and save pseudo-depth maps</li>
+              <li>Train the student on `450` labeled NYU-v2 images plus `2000` pseudo-labeled images</li>
+              <li>Evaluate teacher, supervised-only student, and teacher-student student on the same test split</li>
+            </ol>
           </div>
           <div class="slide-card">
-            <h3>Core files</h3>
+            <h3>Why this matters</h3>
             <ul class="list">
-              <li><code>src/train.py</code></li>
-              <li><code>src/eval.py</code></li>
-              <li><code>src/plots.py</code></li>
-              <li><code>src/pseudo_label.py</code></li>
-              <li><code>src/prepare_nyu_v2.py</code></li>
-              <li><code>configs/baseline.yaml</code></li>
-              <li><code>configs/self_training.yaml</code></li>
+              <li>More faithful to the original paper logic</li>
+              <li>No architecture drift</li>
+              <li>Lets the data story carry the project</li>
             </ul>
           </div>
         </div>
@@ -147,17 +148,21 @@
       <div class="slide-inner">
         <div class="slide-grid">
           <div class="slide-card">
-            <div class="kicker">Dataset Choice</div>
-            <h2>NYU-v2 is the correct first benchmark.</h2>
-            <p>It matches the original presentation, fits the indoor-depth story, and is realistic for a local fine-tuning and evaluation run.</p>
+            <div class="kicker">Measured Results</div>
+            <h2>Three-way comparison.</h2>
+            <div class="pill-row">
+              <span class="pill">Teacher: 0.1467 / 0.8381</span>
+              <span class="pill">Supervised: 0.1810 / 0.7163</span>
+              <span class="pill">Teacher-student: 0.1682 / 0.7531</span>
+            </div>
+            <ul class="list" style="margin-top:16px;">
+              <li>Teacher-student improved over the supervised-only student</li>
+              <li>The zero-shot teacher still remained strongest</li>
+              <li>The extra pseudo-labeled data helped, but not enough to surpass the teacher</li>
+            </ul>
           </div>
           <div class="slide-card">
-            <h3>Preparation command</h3>
-            <pre class="code-block">cd /home/alexander/depth-project
-source .venv/bin/activate
-python src/prepare_nyu_v2.py \
-  --root /home/alexander/depth-project/data/nyu_v2 \
-  --val-count 512</pre>
+            <img src="assets/figures/run_comparison.png" alt="Run comparison" style="width:100%;height:auto;border-radius:18px;">
           </div>
         </div>
       </div>
@@ -167,26 +172,19 @@ python src/prepare_nyu_v2.py \
       <div class="slide-inner">
         <div class="slide-grid">
           <div class="slide-card">
-            <div class="kicker">Execution Flow</div>
-            <h2>Baseline run, then evaluation, then plots.</h2>
-            <ol class="list">
-              <li>Prepare NYU-v2 into train, val, and test manifests</li>
-              <li>Fine-tune Depth Anything Small on NYU-v2</li>
-              <li>Evaluate with aligned AbsRel and delta1</li>
-              <li>Generate qualitative panels and metric plots</li>
-              <li>Optionally run pseudo-label self-training</li>
-            </ol>
+            <div class="kicker">Pseudo Labels</div>
+            <h2>What the teacher generated.</h2>
+            <p>The pseudo-label expansion was not abstract. The teacher actually produced depth maps for `2000` unlabeled indoor images, and those predictions became extra student training targets.</p>
           </div>
           <div class="slide-card">
-            <h3>Expected outputs</h3>
-            <ul class="list">
-              <li>Best checkpoint</li>
-              <li>Training history JSONL</li>
-              <li>Test summary JSON</li>
-              <li>Per-image metric CSV</li>
-              <li>Qualitative prediction panels</li>
-              <li>Loss and metric plots</li>
-            </ul>
+            <div class="gallery-grid">
+              <figure class="figure-card">
+                <img src="assets/figures/teacher_pseudo_00.png" alt="Teacher pseudo sample 0">
+              </figure>
+              <figure class="figure-card">
+                <img src="assets/figures/teacher_pseudo_01.png" alt="Teacher pseudo sample 1">
+              </figure>
+            </div>
           </div>
         </div>
       </div>
@@ -196,25 +194,26 @@ python src/prepare_nyu_v2.py \
       <div class="slide-inner">
         <div class="slide-grid">
           <div class="slide-card">
-            <div class="kicker">Results Section</div>
-            <h2>The pipeline is ready for the results that belong here.</h2>
-            <p>The proof-of-concept run is complete on a clean NYU-v2 subset. The key result is that the small supervised fine-tune improved validation but hurt held-out test performance, which is useful evidence of overfitting on a small split.</p>
-            <div class="pill-row">
-              <span class="pill">Zero-shot AbsRel 0.1467</span>
-              <span class="pill">Zero-shot delta1 0.8381</span>
-              <span class="pill">Fine-tuned AbsRel 0.1810</span>
-              <span class="pill">Fine-tuned delta1 0.7163</span>
-              <span class="pill">59 before/after panels</span>
-            </div>
+            <div class="kicker">Qualitative Comparison</div>
+            <h2>Same test sample, three runs.</h2>
+            <ul class="list">
+              <li>left: zero-shot teacher</li>
+              <li>middle: supervised-only student</li>
+              <li>right: teacher-student student</li>
+            </ul>
           </div>
           <div class="slide-card">
-            <h3>What was reported</h3>
-            <ul class="list">
-              <li>Zero-shot baseline before fine-tuning</li>
-              <li>Two-epoch supervised fine-tune on 450 train images</li>
-              <li>Validation improved from epoch 1 to epoch 2</li>
-              <li>Held-out test performance degraded, indicating overfitting on the PoC split</li>
-            </ul>
+            <div class="gallery-grid">
+              <figure class="figure-card">
+                <img src="assets/figures/nyu_zero_shot_000000.png" alt="Zero-shot sample">
+              </figure>
+              <figure class="figure-card">
+                <img src="assets/figures/nyu_finetuned_000000.png" alt="Supervised sample">
+              </figure>
+              <figure class="figure-card">
+                <img src="assets/figures/teacher_student_000000.png" alt="Teacher-student sample">
+              </figure>
+            </div>
           </div>
         </div>
       </div>
@@ -223,25 +222,27 @@ python src/prepare_nyu_v2.py \
     <section class="slide" id="slide-9">
       <div class="slide-inner">
         <div class="slide-grid">
-          <div>
-            <div class="kicker">Current State</div>
-            <h2>Real progress is already visible.</h2>
-            <div class="bar-chart">
-              <div class="bar-row"><span>Repo</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>100%</strong></div>
-              <div class="bar-row"><span>Environment</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>100%</strong></div>
-              <div class="bar-row"><span>Code</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>100%</strong></div>
-              <div class="bar-row"><span>Dataset prep</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>subset done</strong></div>
-              <div class="bar-row"><span>Training results</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><strong>done</strong></div>
+          <div class="slide-card">
+            <div class="kicker">Teacher-Student Training</div>
+            <h2>Student metrics after the data expansion run.</h2>
+            <div class="gallery-grid">
+              <figure class="figure-card">
+                <img src="assets/figures/teacher_student_loss_vs_epoch.png" alt="Teacher-student loss">
+              </figure>
+              <figure class="figure-card">
+                <img src="assets/figures/teacher_student_val_absrel_vs_epoch.png" alt="Teacher-student val absrel">
+              </figure>
+              <figure class="figure-card">
+                <img src="assets/figures/teacher_student_val_delta1_vs_epoch.png" alt="Teacher-student val delta1">
+              </figure>
             </div>
           </div>
           <div class="slide-card">
-            <h3>Live status</h3>
+            <h3>What happened</h3>
             <ul class="list">
-              <li>GitHub repo published</li>
-              <li>Desktop testing runbook written</li>
-              <li>Demonstration report written</li>
-              <li>NYU-v2 PoC subset exported and split</li>
-              <li>Zero-shot and fine-tuned test sets rendered to image panels</li>
+              <li>Teacher-student training reduced the gap relative to the supervised-only student</li>
+              <li>The teacher still generalized better on the held-out test subset</li>
+              <li>This is the honest local-scale outcome of the paper-style idea</li>
             </ul>
           </div>
         </div>
@@ -251,17 +252,42 @@ python src/prepare_nyu_v2.py \
     <section class="slide" id="slide-10">
       <div class="slide-inner">
         <div class="slide-grid">
+          <div class="slide-card">
+            <div class="kicker">Extra Demo</div>
+            <h2>Second dataset and upload demo.</h2>
+            <ul class="list">
+              <li>KITTI Tiny is included as an outdoor zero-shot demo</li>
+              <li>The local upload app runs the pretrained teacher on any image</li>
+              <li>This is the cleanest live demo because the teacher is still the best model</li>
+            </ul>
+          </div>
+          <div class="slide-card">
+            <div class="gallery-grid">
+              <figure class="figure-card">
+                <img src="assets/figures/kitti_input_0000000000.png" alt="KITTI input">
+              </figure>
+              <figure class="figure-card">
+                <img src="assets/figures/kitti_depth_0000000000.png" alt="KITTI depth">
+              </figure>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-11">
+      <div class="slide-inner">
+        <div class="slide-grid">
           <div>
             <div class="kicker">Conclusion</div>
-            <h2>The project is no longer just a paper talk.</h2>
-            <p class="lead">It is now a repo, an environment, a data-prep workflow, a training pipeline, an evaluation pipeline, a testing runbook, a demonstration report, a slide deck, and a web results page.</p>
+            <h2>The project now matches the original story much more closely.</h2>
+            <p class="lead">The final honest claim is not that the local student beat the teacher. It is that the repo now demonstrates the teacher-student pseudo-label expansion idea, and that the added data measurably improved the student over the tiny supervised-only baseline.</p>
           </div>
           <div class="slide-card">
             <h3>Open next</h3>
             <ul class="list">
               <li><a href="results.html">Results webpage</a></li>
-              <li><a href="../outputs/predictions/poc_compare_gallery.html">Before/after gallery</a></li>
-              <li><a href="demonstration_report.md">Detailed report</a></li>
+              <li><a href="../outputs/predictions/teacher_student_compare_gallery.html">Three-way comparison gallery</a></li>
               <li><a href="https://github.com/arassal/depth-project">GitHub repository</a></li>
             </ul>
           </div>
