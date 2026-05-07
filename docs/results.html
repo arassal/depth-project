@@ -12,8 +12,8 @@
         <div class="hero-grid">
           <section>
             <span class="eyebrow">Depth Anything • Results</span>
-            <h1>Teacher, student, pseudo labels, and a refined student architecture.</h1>
-            <p class="lead">This project now does two things beyond the original small proof of concept: it follows the paper-style teacher-student data expansion, and it adds a lightweight RGB-guided residual refinement head on top of the student’s coarse depth prediction.</p>
+            <h1>Teacher, student, pseudo labels, and a major student architecture change.</h1>
+            <p class="lead">This project now does two central things beyond the original small proof of concept: it follows the paper-style teacher-student data expansion, and it adds a deliberate RGB-guided residual refinement head on top of the student’s coarse depth prediction.</p>
           </section>
           <aside class="panel">
             <h2>Project snapshot</h2>
@@ -23,8 +23,8 @@
                 <span class="value">DA-S</span>
               </div>
               <div class="metric">
-                <span class="label">Arch change</span>
-                <span class="value">Residual head</span>
+                <span class="label">Main change</span>
+                <span class="value">Refinement head</span>
               </div>
               <div class="metric">
                 <span class="label">Labeled seed</span>
@@ -46,8 +46,8 @@
 
       <section class="section grid-3">
         <article class="card">
-          <h3>Architecture changed</h3>
-          <p>The student now adds an RGB-guided residual refinement head that learns a local correction on top of the coarse Depth Anything prediction.</p>
+          <h3>Major architecture change</h3>
+          <p>The student now adds an RGB-guided residual refinement head that learns a local correction on top of the coarse Depth Anything prediction. This is one of the main project contributions.</p>
         </article>
         <article class="card">
           <h3>Paper story matched better</h3>
@@ -111,15 +111,15 @@
 
       <section class="section">
         <article class="panel">
-          <h2>Student architecture modification</h2>
+          <h2>Main architecture contribution</h2>
           <div class="gallery-grid">
             <figure class="figure-card">
               <img src="assets/figures/refined_run_comparison.png" alt="Four-run comparison chart">
-              <figcaption>The refined student is better than the earlier student runs, but the teacher still remains best.</figcaption>
+              <figcaption>The refinement head improved the student over both earlier student variants, even though the teacher still remains best.</figcaption>
             </figure>
             <div class="figure-card">
               <h3>Refinement head</h3>
-              <p>The student no longer outputs the backbone depth map directly. It now predicts a correction using `RGB + coarse depth`, then adds that residual back to the coarse map.</p>
+              <p>The student no longer outputs the backbone depth map directly. It now predicts a correction using `RGB + coarse depth`, then adds that residual back to the coarse map. This is the clearest technical modification in the whole project.</p>
               <ul class="list">
                 <li>Base model: `Depth Anything Small`</li>
                 <li>New module: `3` convolution layers with `GELU`</li>
@@ -223,7 +223,7 @@ python src/eval.py --config configs/teacher_student_refined.yaml \
           <h2>Why this is the honest claim</h2>
           <ul class="list">
             <li>The dataset grew through pseudo labeling</li>
-            <li>The student architecture changed in a clear, lightweight way</li>
+            <li>The student architecture changed in a clear, lightweight, presentation-worthy way</li>
             <li>The refined student improved over both earlier student baselines</li>
             <li>The pretrained teacher remained stronger on the held-out test set</li>
             <li>This is a valid proof of concept for the original teacher-student idea plus a practical student refinement module</li>
@@ -256,7 +256,7 @@ python src/eval.py --config configs/teacher_student_refined.yaml \
         </article>
       </section>
 
-      <p class="footer-note">The most accurate summary is simple: pseudo-label expansion and the refinement head both helped the student, but the pretrained teacher still won on the held-out test subset.</p>
+      <p class="footer-note">The most accurate summary is simple: pseudo-label expansion and the refinement head are the two major project moves, and both helped the student even though the pretrained teacher still won on the held-out test subset.</p>
     </main>
   </body>
 </html>

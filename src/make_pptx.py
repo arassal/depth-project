@@ -114,6 +114,7 @@ add_bullets(
         "Student: trained on labeled NYU-v2 subset plus teacher-pseudo-labeled indoor images",
         "Architecture change: RGB-guided residual refinement head",
         "Main result: refined student improved over earlier student runs but did not beat the teacher",
+        "The refinement head is one of the main talking points of the project",
     ],
     0.8,
     1.4,
@@ -124,7 +125,7 @@ add_bullets(
 # Slide 2
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 set_bg(slide)
-add_title(slide, "Student Architecture Change")
+add_title(slide, "Major Architecture Change")
 add_bullets(
     slide,
     [
@@ -144,6 +145,7 @@ add_bullets(
     [
         "The teacher stays the original Depth Anything Small model",
         "The student gets a lightweight refinement module instead of a full backbone rewrite",
+        "This is one of the main technical talking points of the project",
     ],
     7.0,
     2.0,
@@ -185,7 +187,7 @@ add_bullets(
         "2. Run the pretrained teacher on that pool",
         "3. Save teacher pseudo-depth maps",
         "4. Train the student on 450 labeled plus 2000 pseudo-labeled images",
-        "5. Evaluate teacher, supervised-only student, and teacher-student student on the same test split",
+        "5. Evaluate teacher, supervised-only student, teacher-student student, and refined student on the same test split",
     ],
     0.9,
     1.4,
@@ -252,12 +254,12 @@ add_caption(slide, "Validation delta1", 8.8, 5.4, 4.0)
 # Slide 9
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 set_bg(slide)
-add_title(slide, "How To Interpret The Outcome")
+add_title(slide, "Main Takeaways")
 add_bullets(
     slide,
     [
         "The student is better with pseudo-labeled expansion than with the tiny supervised-only run",
-        "The residual refinement head improves the student again over the plain teacher-student run",
+        "The residual refinement head is a major project contribution and improves the student again over the plain teacher-student run",
         "The zero-shot teacher still generalizes best on the held-out test subset",
         "This means the local teacher-student pipeline and the architecture change are both valid, but the student still needs either more data or safer tuning to surpass the teacher",
     ],
@@ -313,6 +315,7 @@ add_bullets(
     [
         "The project now matches the original paper story much more closely",
         "Training data expanded through pseudo labels and the student gained a refinement head",
+        "The refinement head should be presented as a major technical talking point",
         "The refined student improved over the earlier student baselines",
         "The pretrained teacher still remained strongest on the held-out test split",
     ],

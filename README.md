@@ -21,6 +21,20 @@ This repo now shows four runs instead of one:
 
 That is closer to the original paper’s story, while also introducing a clear architectural change instead of stopping at fine-tuning alone.
 
+## Major Talking Point
+The architecture change is one of the main project contributions, not a side detail.
+
+What was added:
+- a student-side `RGB-guided residual refinement head`
+- input: `RGB + coarse depth`
+- output: a learned residual correction map
+- effect: the student becomes a two-stage predictor with a coarse estimate and a learned local refinement stage
+
+Why it matters:
+- it turns the project into more than a training-only reproduction
+- it is easy to explain visually and technically
+- it produced a measurable improvement over the plain teacher-student student
+
 ## Main Results
 
 | Run | Training data | Architecture | AbsRel | delta1 | Test images |
@@ -44,6 +58,11 @@ The effective architectural modification is a small residual correction module a
 - final prediction: `coarse_depth + residual_scale * residual`
 
 This keeps the original model as the coarse estimator while giving the student a trainable local refinement stage.
+
+This should be presented as a major project decision:
+- the teacher preserves the original `Depth Anything Small` backbone
+- the student is where the architecture was intentionally extended
+- the refinement head is the clearest technical difference between this project and a straight paper-summary reproduction
 
 ## Data Growth
 - labeled seed set: `450`

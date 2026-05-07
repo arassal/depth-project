@@ -16,7 +16,7 @@
       <div class="links">
         <a href="#slide-1">Intro</a>
         <a href="#slide-2">Paper</a>
-        <a href="#slide-3">Model</a>
+        <a href="#slide-3">Architecture</a>
         <a href="#slide-4">Data</a>
         <a href="#slide-5">Pipeline</a>
         <a href="#slide-6">Results</a>
@@ -34,7 +34,7 @@
           <div>
             <div class="kicker">Depth Anything Project</div>
             <h1>From paper presentation to local teacher-student depth system.</h1>
-            <p class="lead">This version is no longer just a tiny supervised fine-tune. It follows the original paper logic more closely with pseudo-label expansion, and it adds a lightweight RGB-guided residual refinement head to the student.</p>
+            <p class="lead">This version is no longer just a tiny supervised fine-tune. It follows the original paper logic more closely with pseudo-label expansion, and it adds a major student-side architecture change: an RGB-guided residual refinement head.</p>
             <div class="pill-row" style="margin-top:20px;">
               <span class="pill">Depth Anything Small</span>
               <span class="pill">NYU-v2</span>
@@ -50,6 +50,7 @@
               <li>Generated teacher pseudo-depth maps</li>
               <li>Trained a student on `450` labeled plus `2000` pseudo-labeled images</li>
               <li>Measured four runs on the same held-out test split</li>
+              <li>Made the refinement head a core project talking point</li>
             </ul>
           </div>
         </div>
@@ -77,7 +78,7 @@
         <div class="slide-grid">
           <div class="slide-card">
             <div class="kicker">Architecture</div>
-            <h2>What changed in the student.</h2>
+            <h2>Major student-side architecture change.</h2>
             <ul class="list">
               <li>Pretrained model: <code>LiheYoung/depth-anything-small-hf</code></li>
               <li>Architecture family: Depth Anything Small / DPT-style monocular depth estimation</li>
@@ -87,12 +88,13 @@
             </ul>
           </div>
           <div class="slide-card">
-            <div class="kicker">Refinement module</div>
+            <div class="kicker">Main Technical Contribution</div>
             <ul class="list">
               <li>Input to new head: RGB plus coarse predicted depth</li>
               <li>Three convolution layers with GELU</li>
               <li>Output is a residual correction map</li>
               <li>Final depth is coarse depth plus scaled residual</li>
+              <li>This is one of the main talking points of the project</li>
               <li>This is best interpreted as relative depth estimation, not exact metric distance from one image</li>
             </ul>
           </div>
@@ -140,7 +142,7 @@
             <ul class="list">
               <li>More faithful to the original paper logic</li>
               <li>The data story stays intact</li>
-              <li>The student also gets a clear architecture change</li>
+              <li>The student also gets a major, easy-to-explain architecture change</li>
             </ul>
           </div>
         </div>
@@ -232,7 +234,7 @@
         <div class="slide-grid">
           <div class="slide-card">
             <div class="kicker">Refined Teacher-Student Training</div>
-            <h2>Student metrics after the data expansion and refinement run.</h2>
+            <h2>Student metrics after the data expansion and architecture-change run.</h2>
             <div class="gallery-grid">
               <figure class="figure-card">
                 <img src="assets/figures/refined_loss_vs_epoch.png" alt="Teacher-student loss">
