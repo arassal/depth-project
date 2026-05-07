@@ -46,7 +46,7 @@ def main() -> None:
 
     config = load_config(args.config)
     device = get_device()
-    _, model = load_model(config["model"]["pretrained_name"])
+    _, model = load_model(config["model"])
 
     checkpoint_path = args.checkpoint if args.checkpoint is not None else config["eval"].get("checkpoint")
     if checkpoint_path and Path(checkpoint_path).exists():

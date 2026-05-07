@@ -35,7 +35,7 @@ def main() -> None:
 
     config = load_config(args.config)
     device = get_device()
-    _, model = load_model(config["model"]["pretrained_name"])
+    _, model = load_model(config["model"])
 
     teacher_mode = config["pseudo"].get("teacher_mode", "checkpoint")
     checkpoint_path = args.checkpoint or config["pseudo"].get("teacher_checkpoint")

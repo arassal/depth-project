@@ -26,7 +26,8 @@ def load_json(path: Path) -> dict:
 zero = load_json(METRICS / "poc_zero_shot_summary.json")
 supervised = load_json(METRICS / "poc_finetuned_summary.json")
 student = load_json(METRICS / "teacher_student_poc_test_summary.json")
-comparison = load_json(METRICS / "teacher_student_comparison.json")
+refined = load_json(METRICS / "teacher_student_refined_test_summary.json")
+comparison = load_json(METRICS / "refined_architecture_comparison.json")
 
 prs = Presentation()
 prs.slide_width = Inches(13.333)
@@ -108,10 +109,11 @@ add_title(slide, "Depth Anything Teacher-Student Proof of Concept", "Alexander A
 add_bullets(
     slide,
     [
-        "Goal: match the original paper story more closely without changing the architecture",
+        "Goal: match the original paper story more closely and add a real student-side architecture change",
         "Teacher: pretrained Depth Anything Small",
         "Student: trained on labeled NYU-v2 subset plus teacher-pseudo-labeled indoor images",
-        "Main result: student improved over the tiny supervised-only run but did not beat the teacher",
+        "Architecture change: RGB-guided residual refinement head",
+        "Main result: refined student improved over earlier student runs but did not beat the teacher",
     ],
     0.8,
     1.4,
@@ -122,15 +124,15 @@ add_bullets(
 # Slide 2
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 set_bg(slide)
-add_title(slide, "What Stayed Fixed")
+add_title(slide, "Student Architecture Change")
 add_bullets(
     slide,
     [
         "Pretrained model: LiheYoung/depth-anything-small-hf",
         "Architecture family: Depth Anything Small / DPT-style monocular depth estimation",
-        "Input: one RGB image",
-        "Output: dense relative depth map",
-        "No architecture rewrite was introduced",
+        "New student head input: RGB plus coarse predicted depth",
+        "New student head: 3 convolution layers with GELU",
+        "Final output: coarse depth plus scaled residual correction",
     ],
     0.8,
     1.3,
@@ -140,8 +142,8 @@ add_bullets(
 add_bullets(
     slide,
     [
-        "The experiment change was data scale through pseudo labels",
-        "That keeps the project aligned with the original presentation",
+        "The teacher stays the original Depth Anything Small model",
+        "The student gets a lightweight refinement module instead of a full backbone rewrite",
     ],
     7.0,
     2.0,
@@ -194,18 +196,18 @@ add_bullets(
 # Slide 5
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 set_bg(slide)
-add_title(slide, "Three-Run Results")
+add_title(slide, "Four-Run Results")
 add_metric_box(slide, "Teacher AbsRel", f"{zero['abs_rel']:.4f}", 0.8, 1.2)
 add_metric_box(slide, "Teacher delta1", f"{zero['delta1']:.4f}", 3.25, 1.2)
 add_metric_box(slide, "Supervised AbsRel", f"{supervised['abs_rel']:.4f}", 5.7, 1.2)
-add_metric_box(slide, "Student AbsRel", f"{student['abs_rel']:.4f}", 8.15, 1.2)
-slide.shapes.add_picture(str(FIGS / "run_comparison.png"), Inches(0.85), Inches(2.8), width=Inches(5.7))
+add_metric_box(slide, "Refined AbsRel", f"{refined['abs_rel']:.4f}", 8.15, 1.2)
+slide.shapes.add_picture(str(FIGS / "refined_run_comparison.png"), Inches(0.85), Inches(2.8), width=Inches(5.7))
 add_bullets(
     slide,
     [
-        f"Teacher-student vs supervised: AbsRel {comparison['teacher_student_vs_supervised']['delta_abs_rel']:+.4f}, delta1 {comparison['teacher_student_vs_supervised']['delta_delta1']:+.4f}",
-        f"Teacher-student vs teacher: AbsRel {comparison['teacher_student_vs_zero_shot']['delta_abs_rel']:+.4f}, delta1 {comparison['teacher_student_vs_zero_shot']['delta_delta1']:+.4f}",
-        "Conclusion: more data helped the student, but the teacher still won",
+        f"Teacher-student vs supervised: AbsRel {comparison['teacher_student_student']['abs_rel'] - comparison['supervised_only_student']['abs_rel']:+.4f}, delta1 {comparison['teacher_student_student']['delta1'] - comparison['supervised_only_student']['delta1']:+.4f}",
+        f"Refined vs teacher-student: AbsRel {comparison['refined_vs_teacher_student']['delta_abs_rel']:+.4f}, delta1 {comparison['refined_vs_teacher_student']['delta_delta1']:+.4f}",
+        f"Refined vs teacher: AbsRel {comparison['refined_vs_zero_shot']['delta_abs_rel']:+.4f}, delta1 {comparison['refined_vs_zero_shot']['delta_delta1']:+.4f}",
     ],
     6.8,
     3.2,
@@ -227,20 +229,22 @@ add_caption(slide, "Teacher pseudo-depth example 2", 6.85, 6.7, 5.7)
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 set_bg(slide)
 add_title(slide, "Qualitative Sample 000000")
-slide.shapes.add_picture(str(FIGS / "nyu_zero_shot_000000.png"), Inches(0.35), Inches(1.35), width=Inches(4.1))
-slide.shapes.add_picture(str(FIGS / "nyu_finetuned_000000.png"), Inches(4.62), Inches(1.35), width=Inches(4.1))
-slide.shapes.add_picture(str(FIGS / "teacher_student_000000.png"), Inches(8.89), Inches(1.35), width=Inches(4.1))
-add_caption(slide, "Zero-shot teacher", 0.35, 6.7, 4.1)
-add_caption(slide, "Supervised-only student", 4.62, 6.7, 4.1)
-add_caption(slide, "Teacher-student student", 8.89, 6.7, 4.1)
+slide.shapes.add_picture(str(FIGS / "nyu_zero_shot_000000.png"), Inches(0.2), Inches(1.35), width=Inches(3.1))
+slide.shapes.add_picture(str(FIGS / "nyu_finetuned_000000.png"), Inches(3.45), Inches(1.35), width=Inches(3.1))
+slide.shapes.add_picture(str(FIGS / "teacher_student_000000.png"), Inches(6.7), Inches(1.35), width=Inches(3.1))
+slide.shapes.add_picture(str(FIGS / "teacher_student_refined_000000.png"), Inches(9.95), Inches(1.35), width=Inches(3.1))
+add_caption(slide, "Zero-shot teacher", 0.2, 6.55, 3.1)
+add_caption(slide, "Supervised-only student", 3.45, 6.55, 3.1)
+add_caption(slide, "Teacher-student student", 6.7, 6.55, 3.1)
+add_caption(slide, "Refined student", 9.95, 6.55, 3.1)
 
 # Slide 8
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 set_bg(slide)
-add_title(slide, "Teacher-Student Training Curves")
-slide.shapes.add_picture(str(FIGS / "teacher_student_loss_vs_epoch.png"), Inches(0.7), Inches(1.3), width=Inches(4.0))
-slide.shapes.add_picture(str(FIGS / "teacher_student_val_absrel_vs_epoch.png"), Inches(4.75), Inches(1.3), width=Inches(4.0))
-slide.shapes.add_picture(str(FIGS / "teacher_student_val_delta1_vs_epoch.png"), Inches(8.8), Inches(1.3), width=Inches(4.0))
+add_title(slide, "Refined Training Curves")
+slide.shapes.add_picture(str(FIGS / "refined_loss_vs_epoch.png"), Inches(0.7), Inches(1.3), width=Inches(4.0))
+slide.shapes.add_picture(str(FIGS / "refined_val_absrel_vs_epoch.png"), Inches(4.75), Inches(1.3), width=Inches(4.0))
+slide.shapes.add_picture(str(FIGS / "refined_val_delta1_vs_epoch.png"), Inches(8.8), Inches(1.3), width=Inches(4.0))
 add_caption(slide, "Loss vs epoch", 0.7, 5.4, 4.0)
 add_caption(slide, "Validation AbsRel", 4.75, 5.4, 4.0)
 add_caption(slide, "Validation delta1", 8.8, 5.4, 4.0)
@@ -253,8 +257,9 @@ add_bullets(
     slide,
     [
         "The student is better with pseudo-labeled expansion than with the tiny supervised-only run",
+        "The residual refinement head improves the student again over the plain teacher-student run",
         "The zero-shot teacher still generalizes best on the held-out test subset",
-        "This means the local teacher-student pipeline is valid, but the student needs either more data or safer tuning to surpass the teacher",
+        "This means the local teacher-student pipeline and the architecture change are both valid, but the student still needs either more data or safer tuning to surpass the teacher",
     ],
     0.9,
     1.5,
@@ -307,8 +312,8 @@ add_bullets(
     slide,
     [
         "The project now matches the original paper story much more closely",
-        "Architecture stayed fixed while training data expanded through pseudo labels",
-        "The teacher-student student improved over the tiny supervised baseline",
+        "Training data expanded through pseudo labels and the student gained a refinement head",
+        "The refined student improved over the earlier student baselines",
         "The pretrained teacher still remained strongest on the held-out test split",
     ],
     0.8,

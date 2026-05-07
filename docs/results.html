@@ -12,8 +12,8 @@
         <div class="hero-grid">
           <section>
             <span class="eyebrow">Depth Anything • Results</span>
-            <h1>Teacher, student, pseudo labels, and measured outcomes.</h1>
-            <p class="lead">This project now follows the original paper story more closely: keep the Depth Anything Small architecture fixed, start from a strong teacher, expand the dataset with pseudo labels, and train a student on more data than the initial labeled seed set.</p>
+            <h1>Teacher, student, pseudo labels, and a refined student architecture.</h1>
+            <p class="lead">This project now does two things beyond the original small proof of concept: it follows the paper-style teacher-student data expansion, and it adds a lightweight RGB-guided residual refinement head on top of the student’s coarse depth prediction.</p>
           </section>
           <aside class="panel">
             <h2>Project snapshot</h2>
@@ -21,6 +21,10 @@
               <div class="metric">
                 <span class="label">Model</span>
                 <span class="value">DA-S</span>
+              </div>
+              <div class="metric">
+                <span class="label">Arch change</span>
+                <span class="value">Residual head</span>
               </div>
               <div class="metric">
                 <span class="label">Labeled seed</span>
@@ -35,15 +39,15 @@
                 <span class="value">2450</span>
               </div>
             </div>
-            <p class="footer-note">As of May 7, 2026, the teacher-student run is complete. It improved over the tiny supervised-only student but still did not beat the pretrained zero-shot teacher.</p>
+            <p class="footer-note">As of May 7, 2026, the refined teacher-student run is complete. It improved over the earlier student runs but still did not beat the pretrained zero-shot teacher.</p>
           </aside>
         </div>
       </header>
 
       <section class="section grid-3">
         <article class="card">
-          <h3>Architecture stayed fixed</h3>
-          <p>The project did not change the core Depth Anything Small architecture. The main change was data scale through pseudo-label expansion.</p>
+          <h3>Architecture changed</h3>
+          <p>The student now adds an RGB-guided residual refinement head that learns a local correction on top of the coarse Depth Anything prediction.</p>
         </article>
         <article class="card">
           <h3>Paper story matched better</h3>
@@ -57,7 +61,7 @@
 
       <section class="section result-shell">
         <article class="panel">
-          <h2>Three-run metrics dashboard</h2>
+          <h2>Four-run metrics dashboard</h2>
           <p>Held-out test results on the `59`-image NYU-v2 subset.</p>
           <div class="grid-2">
             <div class="metric">
@@ -84,6 +88,14 @@
               <span class="label">Teacher-student delta1</span>
               <span class="value">0.7531</span>
             </div>
+            <div class="metric">
+              <span class="label">Refined TS AbsRel</span>
+              <span class="value">0.1591</span>
+            </div>
+            <div class="metric">
+              <span class="label">Refined TS delta1</span>
+              <span class="value">0.7696</span>
+            </div>
           </div>
         </article>
         <aside class="result-placeholder">
@@ -91,10 +103,33 @@
           <ul class="list">
             <li>The zero-shot teacher remains the strongest overall model</li>
             <li>The teacher-student run improved over the supervised-only student</li>
-            <li>The extra `2000` pseudo-labeled indoor images closed part of the gap</li>
+            <li>The residual refinement head improved the student again</li>
             <li>The local student still trails the pretrained teacher on held-out test data</li>
           </ul>
         </aside>
+      </section>
+
+      <section class="section">
+        <article class="panel">
+          <h2>Student architecture modification</h2>
+          <div class="gallery-grid">
+            <figure class="figure-card">
+              <img src="assets/figures/refined_run_comparison.png" alt="Four-run comparison chart">
+              <figcaption>The refined student is better than the earlier student runs, but the teacher still remains best.</figcaption>
+            </figure>
+            <div class="figure-card">
+              <h3>Refinement head</h3>
+              <p>The student no longer outputs the backbone depth map directly. It now predicts a correction using `RGB + coarse depth`, then adds that residual back to the coarse map.</p>
+              <ul class="list">
+                <li>Base model: `Depth Anything Small`</li>
+                <li>New module: `3` convolution layers with `GELU`</li>
+                <li>Input to new head: `RGB + coarse depth`</li>
+                <li>Output: residual correction map</li>
+                <li>Final depth: `coarse + scaled residual`</li>
+              </ul>
+            </div>
+          </div>
+        </article>
       </section>
 
       <section class="section">
@@ -107,7 +142,7 @@
             </figure>
             <figure class="figure-card">
               <img src="assets/figures/run_comparison.png" alt="Three-run comparison chart">
-              <figcaption>The teacher-student run improved over the small supervised student, but the zero-shot teacher is still best.</figcaption>
+              <figcaption>The first teacher-student run improved over the small supervised student before the architecture change was added.</figcaption>
             </figure>
             <figure class="figure-card">
               <img src="assets/figures/teacher_pseudo_00.png" alt="Teacher pseudo label sample one">
@@ -139,8 +174,8 @@
               <figcaption>Teacher-student run on the same sample.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/teacher_student_000004.png" alt="Teacher-student second panel">
-              <figcaption>Second teacher-student qualitative example from the held-out test set.</figcaption>
+              <img src="assets/figures/teacher_student_refined_000000.png" alt="Refined teacher-student panel">
+              <figcaption>Refined teacher-student student on the same sample.</figcaption>
             </figure>
           </div>
         </article>
@@ -148,23 +183,23 @@
 
       <section class="section">
         <article class="panel">
-          <h2>Teacher-student training curves</h2>
+          <h2>Refined teacher-student training curves</h2>
           <div class="gallery-grid gallery-grid-wide">
             <figure class="figure-card">
-              <img src="assets/figures/teacher_student_loss_vs_epoch.png" alt="Teacher-student loss">
-              <figcaption>Training and validation loss for the one-epoch teacher-student run.</figcaption>
+              <img src="assets/figures/refined_loss_vs_epoch.png" alt="Refined teacher-student loss">
+              <figcaption>Training and validation loss for the refined one-epoch teacher-student run.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/teacher_student_val_absrel_vs_epoch.png" alt="Teacher-student validation AbsRel">
-              <figcaption>Validation AbsRel after training on the expanded dataset.</figcaption>
+              <img src="assets/figures/refined_val_absrel_vs_epoch.png" alt="Refined teacher-student validation AbsRel">
+              <figcaption>Validation AbsRel after training the refined student on the expanded dataset.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/teacher_student_val_delta1_vs_epoch.png" alt="Teacher-student validation delta1">
-              <figcaption>Validation delta1 after the teacher-student run.</figcaption>
+              <img src="assets/figures/refined_val_delta1_vs_epoch.png" alt="Refined teacher-student validation delta1">
+              <figcaption>Validation delta1 after the refined teacher-student run.</figcaption>
             </figure>
             <figure class="figure-card">
-              <img src="assets/figures/teacher_student_test_absrel_histogram.png" alt="Teacher-student test histogram">
-              <figcaption>Per-image AbsRel histogram from the teacher-student held-out test run.</figcaption>
+              <img src="assets/figures/refined_test_absrel_histogram.png" alt="Refined teacher-student test histogram">
+              <figcaption>Per-image AbsRel histogram from the refined held-out test run.</figcaption>
             </figure>
           </div>
         </article>
@@ -172,7 +207,7 @@
 
       <section class="section grid-2">
         <article class="panel">
-          <h2>Exact teacher-student workflow</h2>
+          <h2>Exact refined workflow</h2>
           <pre class="code-block">cd /home/alexander/depth-project
 source .venv/bin/activate
 python src/prepare_indoor_pseudo_pool.py \
@@ -180,18 +215,18 @@ python src/prepare_indoor_pseudo_pool.py \
   --limit 2000
 
 python src/pseudo_label.py --config configs/teacher_student_poc.yaml
-python src/train.py --config configs/teacher_student_poc.yaml
-python src/eval.py --config configs/teacher_student_poc.yaml \
-  --checkpoint checkpoints/teacher_student_poc_best.pt</pre>
+python src/train.py --config configs/teacher_student_refined.yaml
+python src/eval.py --config configs/teacher_student_refined.yaml \
+  --checkpoint checkpoints/teacher_student_refined_best.pt</pre>
         </article>
         <article class="panel">
           <h2>Why this is the honest claim</h2>
           <ul class="list">
-            <li>The architecture stayed fixed</li>
             <li>The dataset grew through pseudo labeling</li>
-            <li>The student improved over the tiny supervised baseline</li>
+            <li>The student architecture changed in a clear, lightweight way</li>
+            <li>The refined student improved over both earlier student baselines</li>
             <li>The pretrained teacher remained stronger on the held-out test set</li>
-            <li>This is a valid proof of concept for the original teacher-student idea at local scale</li>
+            <li>This is a valid proof of concept for the original teacher-student idea plus a practical student refinement module</li>
           </ul>
         </article>
       </section>
@@ -221,7 +256,7 @@ python src/eval.py --config configs/teacher_student_poc.yaml \
         </article>
       </section>
 
-      <p class="footer-note">The most accurate summary is simple: the local teacher-student pipeline made the student better than the tiny supervised baseline, but the pretrained teacher still won on the held-out test subset.</p>
+      <p class="footer-note">The most accurate summary is simple: pseudo-label expansion and the refinement head both helped the student, but the pretrained teacher still won on the held-out test subset.</p>
     </main>
   </body>
 </html>

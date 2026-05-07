@@ -93,7 +93,7 @@ def main() -> None:
     seed_everything(config["seed"])
     device = get_device()
 
-    _, model = load_model(config["model"]["pretrained_name"])
+    _, model = load_model(config["model"])
     model.to(device)
     use_amp = device.type == "cuda"
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)

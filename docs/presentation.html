@@ -11,7 +11,7 @@
     <nav class="slide-nav">
       <div>
         <strong>Depth Anything Demo Deck</strong><br>
-        <span class="status"><span class="dot ok"></span>Teacher-student run completed on NYU-v2 subset plus 2000 pseudo-labeled indoor images</span>
+        <span class="status"><span class="dot ok"></span>Refined teacher-student run completed on NYU-v2 subset plus 2000 pseudo-labeled indoor images</span>
       </div>
       <div class="links">
         <a href="#slide-1">Intro</a>
@@ -34,7 +34,7 @@
           <div>
             <div class="kicker">Depth Anything Project</div>
             <h1>From paper presentation to local teacher-student depth system.</h1>
-            <p class="lead">This version is no longer just a tiny supervised fine-tune. It now follows the original paper logic more closely: keep the architecture fixed, expand the data with pseudo labels, and train a student on more images than the labeled seed set.</p>
+            <p class="lead">This version is no longer just a tiny supervised fine-tune. It follows the original paper logic more closely with pseudo-label expansion, and it adds a lightweight RGB-guided residual refinement head to the student.</p>
             <div class="pill-row" style="margin-top:20px;">
               <span class="pill">Depth Anything Small</span>
               <span class="pill">NYU-v2</span>
@@ -49,7 +49,7 @@
               <li>Added a `2000` image indoor pseudo-label pool</li>
               <li>Generated teacher pseudo-depth maps</li>
               <li>Trained a student on `450` labeled plus `2000` pseudo-labeled images</li>
-              <li>Measured all three runs on the same held-out test split</li>
+              <li>Measured four runs on the same held-out test split</li>
             </ul>
           </div>
         </div>
@@ -61,8 +61,8 @@
         <div class="slide-grid">
           <div>
             <div class="kicker">Paper Claim</div>
-            <h2>Data scale is the story.</h2>
-            <p class="lead">The original paper’s headline is not a radically new architecture. It is a strong depth model plus much more training data, including pseudo-labeled data from a teacher-student pipeline.</p>
+            <h2>Data scale was the starting story.</h2>
+            <p class="lead">The original paper’s headline is a strong depth model plus much more training data, including pseudo-labeled data from a teacher-student pipeline. This project adds that data story locally, then tests one practical student-side architecture change.</p>
           </div>
           <div class="slide-card">
             <div class="big-number">63.5M</div>
@@ -77,19 +77,22 @@
         <div class="slide-grid">
           <div class="slide-card">
             <div class="kicker">Architecture</div>
-            <h2>What stayed fixed.</h2>
+            <h2>What changed in the student.</h2>
             <ul class="list">
               <li>Pretrained model: <code>LiheYoung/depth-anything-small-hf</code></li>
               <li>Architecture family: Depth Anything Small / DPT-style monocular depth estimation</li>
               <li>Input: single RGB image</li>
               <li>Output: dense depth map</li>
+              <li>Student change: RGB-guided residual refinement head</li>
             </ul>
           </div>
           <div class="slide-card">
-            <div class="kicker">Important distinction</div>
+            <div class="kicker">Refinement module</div>
             <ul class="list">
-              <li>The architecture did not change</li>
-              <li>The main experiment change was data scale through pseudo labels</li>
+              <li>Input to new head: RGB plus coarse predicted depth</li>
+              <li>Three convolution layers with GELU</li>
+              <li>Output is a residual correction map</li>
+              <li>Final depth is coarse depth plus scaled residual</li>
               <li>This is best interpreted as relative depth estimation, not exact metric distance from one image</li>
             </ul>
           </div>
@@ -129,15 +132,15 @@
               <li>Export `2000` indoor RGB images into an unlabeled pool</li>
               <li>Run the teacher on that pool and save pseudo-depth maps</li>
               <li>Train the student on `450` labeled NYU-v2 images plus `2000` pseudo-labeled images</li>
-              <li>Evaluate teacher, supervised-only student, and teacher-student student on the same test split</li>
+              <li>Evaluate teacher, supervised-only student, teacher-student student, and refined student on the same test split</li>
             </ol>
           </div>
           <div class="slide-card">
             <h3>Why this matters</h3>
             <ul class="list">
               <li>More faithful to the original paper logic</li>
-              <li>No architecture drift</li>
-              <li>Lets the data story carry the project</li>
+              <li>The data story stays intact</li>
+              <li>The student also gets a clear architecture change</li>
             </ul>
           </div>
         </div>
@@ -149,20 +152,21 @@
         <div class="slide-grid">
           <div class="slide-card">
             <div class="kicker">Measured Results</div>
-            <h2>Three-way comparison.</h2>
+            <h2>Four-way comparison.</h2>
             <div class="pill-row">
               <span class="pill">Teacher: 0.1467 / 0.8381</span>
               <span class="pill">Supervised: 0.1810 / 0.7163</span>
               <span class="pill">Teacher-student: 0.1682 / 0.7531</span>
+              <span class="pill">Refined TS: 0.1591 / 0.7696</span>
             </div>
             <ul class="list" style="margin-top:16px;">
               <li>Teacher-student improved over the supervised-only student</li>
+              <li>The refinement head improved the student again</li>
               <li>The zero-shot teacher still remained strongest</li>
-              <li>The extra pseudo-labeled data helped, but not enough to surpass the teacher</li>
             </ul>
           </div>
           <div class="slide-card">
-            <img src="assets/figures/run_comparison.png" alt="Run comparison" style="width:100%;height:auto;border-radius:18px;">
+            <img src="assets/figures/refined_run_comparison.png" alt="Run comparison" style="width:100%;height:auto;border-radius:18px;">
           </div>
         </div>
       </div>
@@ -195,11 +199,12 @@
         <div class="slide-grid">
           <div class="slide-card">
             <div class="kicker">Qualitative Comparison</div>
-            <h2>Same test sample, three runs.</h2>
+            <h2>Same test sample, four runs.</h2>
             <ul class="list">
               <li>left: zero-shot teacher</li>
-              <li>middle: supervised-only student</li>
-              <li>right: teacher-student student</li>
+              <li>middle-left: supervised-only student</li>
+              <li>middle-right: teacher-student student</li>
+              <li>right: refined teacher-student student</li>
             </ul>
           </div>
           <div class="slide-card">
@@ -213,6 +218,9 @@
               <figure class="figure-card">
                 <img src="assets/figures/teacher_student_000000.png" alt="Teacher-student sample">
               </figure>
+              <figure class="figure-card">
+                <img src="assets/figures/teacher_student_refined_000000.png" alt="Refined sample">
+              </figure>
             </div>
           </div>
         </div>
@@ -223,17 +231,17 @@
       <div class="slide-inner">
         <div class="slide-grid">
           <div class="slide-card">
-            <div class="kicker">Teacher-Student Training</div>
-            <h2>Student metrics after the data expansion run.</h2>
+            <div class="kicker">Refined Teacher-Student Training</div>
+            <h2>Student metrics after the data expansion and refinement run.</h2>
             <div class="gallery-grid">
               <figure class="figure-card">
-                <img src="assets/figures/teacher_student_loss_vs_epoch.png" alt="Teacher-student loss">
+                <img src="assets/figures/refined_loss_vs_epoch.png" alt="Teacher-student loss">
               </figure>
               <figure class="figure-card">
-                <img src="assets/figures/teacher_student_val_absrel_vs_epoch.png" alt="Teacher-student val absrel">
+                <img src="assets/figures/refined_val_absrel_vs_epoch.png" alt="Teacher-student val absrel">
               </figure>
               <figure class="figure-card">
-                <img src="assets/figures/teacher_student_val_delta1_vs_epoch.png" alt="Teacher-student val delta1">
+                <img src="assets/figures/refined_val_delta1_vs_epoch.png" alt="Teacher-student val delta1">
               </figure>
             </div>
           </div>
@@ -241,8 +249,9 @@
             <h3>What happened</h3>
             <ul class="list">
               <li>Teacher-student training reduced the gap relative to the supervised-only student</li>
+              <li>The refinement head reduced the gap further</li>
               <li>The teacher still generalized better on the held-out test subset</li>
-              <li>This is the honest local-scale outcome of the paper-style idea</li>
+              <li>This is the honest local-scale outcome of the paper-style idea plus a practical architecture change</li>
             </ul>
           </div>
         </div>

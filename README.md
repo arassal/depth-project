@@ -1,34 +1,49 @@
 # Depth Project
 
-Monocular depth proof of concept built from the original `Depth Anything` presentation, then extended into a closer paper-style teacher-student workflow.
+Monocular depth proof of concept built from the original `Depth Anything` presentation, then extended in two directions:
+- paper-style `teacher -> pseudo labels -> student` data expansion
+- a lightweight architecture change on the student: an `RGB-guided residual refinement head`
 
 ## What This Repo Shows
-- model: `LiheYoung/depth-anything-small-hf`
-- architecture: `Depth Anything Small` / DPT-style monocular depth estimation
+- base teacher: `LiheYoung/depth-anything-small-hf`
+- baseline architecture: `Depth Anything Small` / DPT-style monocular depth estimation
+- student architecture change: `RGB + coarse depth -> residual refinement head -> refined depth`
 - benchmark: `NYU-v2` proof-of-concept subset
 - teacher-student expansion: `450` labeled indoor images plus `2000` teacher-pseudo-labeled indoor images
 - outputs: metrics, plots, qualitative panels, comparison galleries, HTML presentation, `.pptx`, local upload demo
 
 ## Final Story
-This repo now shows three stages instead of just one:
+This repo now shows four runs instead of one:
 1. zero-shot teacher
 2. small supervised-only student
 3. teacher-student student trained on labeled plus pseudo-labeled data
+4. refined teacher-student student with an added residual refinement head
 
-That is much closer to the original paper’s story than the first PoC version.
+That is closer to the original paper’s story, while also introducing a clear architectural change instead of stopping at fine-tuning alone.
 
 ## Main Results
 
-| Run | Training data | AbsRel | delta1 | Test images |
-| --- | --- | ---: | ---: | ---: |
-| Zero-shot teacher | pretrained only | `0.1467` | `0.8381` | `59` |
-| Supervised-only student | `450` labeled | `0.1810` | `0.7163` | `59` |
-| Teacher-student run | `450` labeled + `2000` pseudo-labeled | `0.1682` | `0.7531` | `59` |
+| Run | Training data | Architecture | AbsRel | delta1 | Test images |
+| --- | --- | --- | ---: | ---: | ---: |
+| Zero-shot teacher | pretrained only | Depth Anything Small | `0.1467` | `0.8381` | `59` |
+| Supervised-only student | `450` labeled | Depth Anything Small | `0.1810` | `0.7163` | `59` |
+| Teacher-student student | `450` labeled + `2000` pseudo-labeled | Depth Anything Small | `0.1682` | `0.7531` | `59` |
+| Refined teacher-student student | `450` labeled + `2000` pseudo-labeled | `Depth Anything Small + RGB-guided residual head` | `0.1591` | `0.7696` | `59` |
 
 Interpretation:
 - the zero-shot teacher is still the best overall result
-- the teacher-student run improved over the small supervised-only student
-- the added pseudo-labeled data helped, but not enough to beat the teacher
+- pseudo-labeled expansion improved the student over the supervised-only run
+- the refinement head improved the student again over the plain teacher-student run
+- the architecture change helped, but it still did not beat the pretrained teacher
+
+## Architecture Change
+The effective architectural modification is a small residual correction module added on top of the backbone prediction:
+- input to the new head: `RGB channels + coarse predicted depth`
+- module: `3` convolution layers with `GELU`
+- output: a residual depth correction
+- final prediction: `coarse_depth + residual_scale * residual`
+
+This keeps the original model as the coarse estimator while giving the student a trainable local refinement stage.
 
 ## Data Growth
 - labeled seed set: `450`
@@ -40,10 +55,10 @@ Interpretation:
 ![Teacher-student data growth](docs/assets/figures/data_growth.png)
 
 ## Why This Matches The Paper Better
-- architecture stayed the same
-- data scale increased through pseudo-labeling rather than architecture changes
-- the student was trained on more data than the original labeled seed set
-- the repo now explicitly shows `teacher -> pseudo labels -> student retraining`
+- the repo explicitly shows `teacher -> pseudo labels -> student retraining`
+- the student trains on materially more data than the original labeled seed set
+- the local run keeps the original model family intact
+- the student now also has a lightweight refinement head, so the project includes a real architecture change
 
 ## What The Images Mean
 The NYU-v2 qualitative panels are laid out as:
@@ -58,26 +73,26 @@ The teacher pseudo-label panels are laid out as:
 
 ## Key Figures
 
-### Three-Run Comparison
-![Run comparison](docs/assets/figures/run_comparison.png)
+### Four-Run Comparison
+![Refined run comparison](docs/assets/figures/refined_run_comparison.png)
 
-### Teacher-Student Training Curves
-![Teacher-student loss](docs/assets/figures/teacher_student_loss_vs_epoch.png)
-![Teacher-student validation AbsRel](docs/assets/figures/teacher_student_val_absrel_vs_epoch.png)
-![Teacher-student validation delta1](docs/assets/figures/teacher_student_val_delta1_vs_epoch.png)
+### Refined Teacher-Student Training Curves
+![Refined loss](docs/assets/figures/refined_loss_vs_epoch.png)
+![Refined validation AbsRel](docs/assets/figures/refined_val_absrel_vs_epoch.png)
+![Refined validation delta1](docs/assets/figures/refined_val_delta1_vs_epoch.png)
 
 ### NYU-v2 Sample 000000
 Zero-shot teacher:
 
 ![Zero-shot sample](docs/assets/figures/nyu_zero_shot_000000.png)
 
-Supervised-only student:
-
-![Supervised-only sample](docs/assets/figures/nyu_finetuned_000000.png)
-
-Teacher-student run:
+Teacher-student student:
 
 ![Teacher-student sample](docs/assets/figures/teacher_student_000000.png)
+
+Refined teacher-student student:
+
+![Refined sample](docs/assets/figures/teacher_student_refined_000000.png)
 
 ### Teacher Pseudo-Label Examples
 ![Teacher pseudo sample 1](docs/assets/figures/teacher_pseudo_00.png)
@@ -119,17 +134,17 @@ Generate pseudo labels with the teacher:
 python src/pseudo_label.py --config configs/teacher_student_poc.yaml
 ```
 
-Train the student:
+Train the refined student:
 
 ```bash
-python src/train.py --config configs/teacher_student_poc.yaml
+python src/train.py --config configs/teacher_student_refined.yaml
 ```
 
-Evaluate the student:
+Evaluate the refined student:
 
 ```bash
-python src/eval.py --config configs/teacher_student_poc.yaml \
-  --checkpoint checkpoints/teacher_student_poc_best.pt
+python src/eval.py --config configs/teacher_student_refined.yaml \
+  --checkpoint checkpoints/teacher_student_refined_best.pt
 ```
 
 ## Local Web Demo
@@ -150,4 +165,4 @@ http://127.0.0.1:8000
 This runs the pretrained zero-shot teacher on uploaded RGB images and saves outputs under `outputs/web_demo/`.
 
 ## Honest Conclusion
-The project now matches the original paper’s logic much more closely: start with a strong teacher, expand the dataset with pseudo labels, and train a student on more data. In this local run, the student improved over the small supervised-only baseline but still did not surpass the pretrained teacher.
+The project now does two meaningful things beyond a tiny fine-tune: it expands the data with a teacher-student pseudo-label pipeline, and it adds a lightweight refinement head to the student. The refined student is clearly better than the earlier student runs, but the pretrained teacher still remains the strongest held-out test result.
