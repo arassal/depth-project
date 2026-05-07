@@ -90,6 +90,33 @@ Predicted depth:
 Desktop package:
 - `/home/alexander/Desktop/DepthProjectDemo`
 
+## Progressive Dataset Expansion
+The clean way to add more datasets is:
+- keep `NYU-v2` as the first benchmark and evaluation anchor
+- add a second labeled dataset by generating its manifest
+- merge train manifests with absolute paths
+- keep validation and test fixed while the train set grows
+
+Workflow note: [docs/multi_dataset_workflow.md](docs/multi_dataset_workflow.md)
+
+Merge example:
+
+```bash
+cd /home/alexander/depth-project
+source .venv/bin/activate
+python src/merge_manifests.py \
+  --absolute-paths \
+  --manifest /home/alexander/depth-project/data/nyu_v2_poc/splits/train.txt \
+  --manifest /path/to/second_dataset/splits/train.txt \
+  --output /home/alexander/depth-project/data/manifests/train_multi.txt
+```
+
+Then train with:
+
+```bash
+python src/train.py --config configs/poc_multi_dataset_template.yaml
+```
+
 ## Local Web Demo
 Run:
 
