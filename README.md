@@ -1,204 +1,190 @@
-# Depth Project
+# Distillation and Edge-Aware Loss for Efficient Monocular Depth Estimation
 
-Cal Poly Pomona, ECE 4990 Final Project (Spring 2026).
+Cal Poly Pomona — ECE 4990 Final Project (Spring 2026)
 
-**Group members:** [Member 1 Name], [Member 2 Name]
+**Authors:** Alexander Assal • Parsa Ghasemi
 
-Monocular depth estimation with `Depth Anything Small` as the student backbone. The contribution layered on top of the proof-of-concept fine-tune is a teacher–student distillation recipe (with `Depth Anything Large` as the teacher) combined with a multi-scale gradient loss for sharper depth boundaries. Evaluated on NYU-v2 (indoor) and a KITTI eigen-split subset (outdoor).
+We fine-tune a Depth Anything Small student against a frozen Depth Anything Large teacher with two losses: affine-invariant output-level distillation (Distill-Any-Depth, He et al. 2025) and a multi-scale gradient L1 (ZoeDepth, Bhat et al. 2023). Evaluation on a 59-image NYU-v2 PoC test split and a 100-image KITTI eigen subset, with a controlled three-axis sweep over the distillation weight `α`, the gradient weight `β`, and the learning rate.
 
-## What This Repo Shows
-- model: `LiheYoung/depth-anything-small-hf`
-- task: monocular relative depth estimation
-- indoor benchmark: `NYU-v2` proof-of-concept subset
-- second dataset demo: `KITTI Tiny`
-- outputs: metrics, plots, qualitative panels, presentation pages, `.pptx`, uploadable local web demo
+📄 **Paper:** [`paper/main.pdf`](paper/main.pdf) (LaTeX source in [`paper/main.tex`](paper/main.tex))
+🎤 **Presentation:** [`docs/DepthProjectPresentation.pptx`](docs/DepthProjectPresentation.pptx)
+🌐 **Demo:** local upload-and-predict web app — `./run_upload_demo.sh`
 
-This is a real result, not a mockup. The pretrained zero-shot model worked well as a relative-depth system. The small supervised fine-tune on a tiny local subset overfit and performed worse on the held-out test split.
+---
 
-## Final PoC Result
+## Headline Result
 
-| Run | AbsRel | delta1 | Test images |
-| --- | ---: | ---: | ---: |
-| Zero-shot | `0.1467` | `0.8381` | `59` |
-| Fine-tuned | `0.1810` | `0.7163` | `59` |
+| Setting | α | β | lr | AbsRel ↓ | δ₁ ↑ | RMSE ↓ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Zero-shot Depth Anything Small | — | — | — | 0.1550 | 0.8146 | 0.5375 |
+| Distilled (default `configs/distill.yaml`) | 0.5 | 0.1 | 1e-5 | 0.2791 | 0.6292 | 0.8898 |
+| **Distilled (best after sweep)** | **0.7** | **0.3** | **1e-7** | **0.1505** | **0.8164** | **0.5262** |
 
-Interpretation:
-- the system is doing real depth estimation
-- the pretrained model is the strongest result in this repo
-- the two-epoch fine-tune on `450` train images overfit the small split
+**Headline finding:** the recipe is dominated by learning rate sensitivity. At `lr=1e-5` the student collapses; at `lr=1e-7` it slightly beats zero-shot. See [paper](paper/main.pdf) §6 for the full analysis.
 
-## Dataset Sizes
-- train: `450`
-- val: `60`
-- test: `59`
+KITTI cross-domain (no training): zero-shot AbsRel 0.4022 / δ₁ 0.356; distilled AbsRel 0.4035 / δ₁ 0.349 — essentially identical, the NYU-v2 improvement does not transfer.
 
-## Diagnostics Run
-- split counts verified from manifest files
-- metrics summaries verified against saved JSON outputs
-- source tree compiled with `python -m compileall src`
-- `DepthEstimationPipeline` loaded successfully from `LiheYoung/depth-anything-small-hf`
-
-Full note: [docs/diagnostics.md](docs/diagnostics.md)
-
-## What The Images Mean
-The NYU-v2 qualitative panels are laid out as:
-- `RGB`
-- `GT` ground-truth depth
-- `Pred` predicted depth
-- `Error` aligned pixelwise error
-
-These panels are best read as a relative-depth check:
-- does the model separate foreground from background?
-- does it preserve large scene layout?
-- do object boundaries land in roughly the right place?
-
-## Key Figures
-
-### Training Curves
-![Loss vs epoch](docs/assets/figures/loss_vs_epoch.png)
-![Validation AbsRel vs epoch](docs/assets/figures/val_absrel_vs_epoch.png)
-![Validation delta1 vs epoch](docs/assets/figures/val_delta1_vs_epoch.png)
-
-### NYU-v2 Qualitative Example
-Zero-shot:
-
-![NYU zero-shot example](docs/assets/figures/nyu_zero_shot_000000.png)
-
-Fine-tuned:
-
-![NYU fine-tuned example](docs/assets/figures/nyu_finetuned_000000.png)
-
-Second zero-shot example:
-
-![NYU zero-shot example 2](docs/assets/figures/nyu_zero_shot_000004.png)
-
-Second fine-tuned example:
-
-![NYU fine-tuned example 2](docs/assets/figures/nyu_finetuned_000004.png)
-
-### KITTI Tiny Demo Example
-Input frame:
-
-![KITTI input](docs/assets/figures/kitti_input_0000000000.png)
-
-Predicted depth:
-
-![KITTI depth](docs/assets/figures/kitti_depth_0000000000.png)
-
-## Main Artifacts
-- results page: [docs/results.html](docs/results.html)
-- presentation page: [docs/presentation.html](docs/presentation.html)
-- pptx: [docs/DepthProjectPresentation.pptx](docs/DepthProjectPresentation.pptx)
-- diagnostics note: [docs/diagnostics.md](docs/diagnostics.md)
-- paper: [paper/main.tex](paper/main.tex)
-
-## Progressive Dataset Expansion
-The clean way to add more datasets is:
-- keep `NYU-v2` as the first benchmark and evaluation anchor
-- add a second labeled dataset by generating its manifest
-- merge train manifests with absolute paths
-- keep validation and test fixed while the train set grows
-
-Workflow note: [docs/multi_dataset_workflow.md](docs/multi_dataset_workflow.md)
-
-## Method
-
-Student: `LiheYoung/depth-anything-small-hf` (~25M params, ViT-S backbone + DPT head).
-Teacher: `LiheYoung/depth-anything-large-hf` (~335M params), frozen.
-
-Training objective:
-
-```
-L_total = (1 - alpha) * L_base(student, gt)
-        + alpha       * L_distill(student, teacher)
-        + beta        * L_grad(student, gt)
-```
-
-where `L_base` and `L_distill` are affine-invariant L1 (robust median + MAD normalization, then per-pixel L1) and `L_grad` is the multi-scale Sobel gradient L1 from ZoeDepth (Bhat et al. 2023). `alpha` and `beta` are swept; defaults are in `configs/distill.yaml`.
-
-The distillation recipe is adapted from Distill-Any-Depth (He et al. 2025); the gradient loss is lifted from ZoeDepth. Both are cited in-line in `src/distill.py` and `src/metrics.py`.
+---
 
 ## Repo Layout
 
 ```
-src/         training, eval, distillation, dataset loaders, plotting
-configs/     yaml configs (poc, distill, kitti_eval, smoke_test, sweeps/)
-paper/       CVPR 2023 LaTeX template, refs.bib, figs/ -> docs/assets/figures
-docs/        results, presentation, diagnostics, qualitative figures
-references/  cloned upstream repos used for code lifts (gitignored)
-tools/       smoke tests for data loaders
+src/          training, eval, distillation, datasets, plotting, sweep harness, web demo
+configs/      yaml configs (baseline, poc, distill, kitti_eval, sweeps/)
+checkpoints/  trained .pt (best distill checkpoint)
+data/         NYU-v2 PoC subset + KITTI eigen subset (regenerate with src/prepare_*.py)
+outputs/      metrics, plots, predictions, sweep results — all real, not mocked
+docs/         results html, presentation pptx, qualitative figures, diagnostics
+paper/        CVPR 2023 LaTeX template + main.tex + refs.bib + figs/
+references/   upstream repos used for code lifts (gitignored)
+tools/        smoke tests for data loaders
 ```
 
-## Reproducibility
+---
 
-All paths are relative to the repo root. Set `data/` and `checkpoints/` per the configs, or override with CLI flags.
+## Method (one paragraph)
 
-Prepare NYU-v2:
+The student is `LiheYoung/depth-anything-small-hf` (~25M params, DINOv2 ViT-S + DPT head). The teacher is `LiheYoung/depth-anything-large-hf` (~335M params), frozen. The total loss is
+
+```
+L_total = (1 − α) · L_base(student, gt)
+        + α       · L_distill(student, teacher)
+        + β       · L_grad(student, gt)
+```
+
+where `L_base` and `L_distill` are affine-invariant L1 (per-sample median + MAD normalization, then L1) and `L_grad` is the multi-scale Sobel gradient L1 from ZoeDepth at downsampling scales {1, 2, 4}. Input resolution is 256×256, batch size 1, AdamW with weight decay 1e-4 and gradient clipping at L2 norm 1.0. See [paper](paper/main.pdf) §3 for full architecture, equations, and motivation.
+
+---
+
+## Quick Start
 
 ```bash
-python src/prepare_nyu_v2.py --root data/nyu_v2 --val-count 512
+# (recommended) create a fresh venv first
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-Prepare KITTI eigen-split eval subset (requires manual KITTI download — see script for instructions):
+**Prepare NYU-v2 PoC subset** (downloads via Hugging Face):
+
+```bash
+python src/prepare_nyu_v2.py --root data/nyu_v2_poc --val-count 60
+```
+
+**Prepare KITTI eigen-test subset** (downloads via Hugging Face):
 
 ```bash
 python src/prepare_kitti.py --root data/kitti --limit 100
 ```
 
-Train baseline (no distillation):
+**Evaluate zero-shot Depth Anything Small on NYU-v2:**
 
 ```bash
-python src/train.py --config configs/poc.yaml
+python src/eval.py --config configs/poc.yaml \
+    --summary-path outputs/metrics/zero_shot_nyu_summary.json \
+    --per-image-path outputs/metrics/zero_shot_nyu_per_image.csv \
+    --preview-dir outputs/predictions/zero_shot_nyu
 ```
 
-Train with distillation + gradient loss:
+**Train with distillation + gradient loss** (default config):
 
 ```bash
 python src/train.py --config configs/distill.yaml
 ```
 
-Evaluate on NYU-v2:
+**Train with the best-found configuration** (override learning rate via a sweep grid):
 
 ```bash
-python src/eval.py --config configs/distill.yaml
+python src/sweep.py \
+    --base configs/distill.yaml \
+    --grid configs/sweeps/beta.yaml \
+    --out outputs/sweeps/beta
 ```
 
-Evaluate on KITTI:
+**Evaluate the best checkpoint on KITTI:**
 
 ```bash
-python src/eval.py --config configs/kitti_eval.yaml
+python src/eval.py --config configs/kitti_eval.yaml \
+    --checkpoint checkpoints/distill_best.pt
 ```
 
-Hyperparameter sweep:
+---
+
+## Hyperparameter Sweeps
+
+Three sweeps are committed to `configs/sweeps/`:
+
+| Sweep | Grid | Fixed | Result file |
+| --- | --- | --- | --- |
+| `alpha.yaml` | α ∈ {0.0, 0.3, 0.5, 0.7, 1.0} | β=0.1, lr=1e-5 | `docs/data/sweeps/alpha.json` |
+| `lr_at_alpha07.yaml` | lr ∈ {1e-7, 1e-6, 5e-6, 1e-5} | α=0.7, β=0.1 | `docs/data/sweeps/lr_at_alpha07.json` |
+| `beta.yaml` | β ∈ {0.0, 0.1, 0.3} | α=0.7, lr=1e-7 | `docs/data/sweeps/beta.json` |
+
+Each sweep run is isolated: its checkpoint, metrics, per-image CSV, and preview images all land in its own `run_<idx>/` directory. See `src/sweep.py` for the harness.
+
+---
+
+## Web Demo
 
 ```bash
-python src/sweep.py --base configs/distill.yaml --grid configs/sweeps/lr_only.yaml --out outputs/sweeps/lr
+./run_upload_demo.sh   # or: python src/demo_web_app.py
 ```
 
-Plot training curves:
+Open `http://127.0.0.1:8000`, upload any RGB image, get a predicted depth map back. Predictions are stored under `outputs/web_demo/`. The demo runs the **zero-shot** Depth Anything Small (the stronger of the two checkpoints in our small-data regime).
 
-```bash
-python src/plots.py --metrics-log outputs/metrics/distill_history.jsonl \
-                    --per-image outputs/metrics/distill_test_per_image.csv \
-                    --output-dir outputs/plots/distill
-```
+---
 
-Plot sweep results (line):
+## Key Figures
 
-```bash
-python src/plot_sweep.py --results outputs/sweeps/lr/results.json \
-                         --x learning_rate --metric abs_rel \
-                         --output-dir outputs/plots/sweeps
-```
+### Training curves (default `distill.yaml` config — shows collapse at epoch 2)
 
-## Local Web Demo
+![Loss vs epoch](docs/assets/figures/loss_vs_epoch.png)
+![Val AbsRel](docs/assets/figures/val_absrel_vs_epoch.png)
+![Val δ₁](docs/assets/figures/val_delta1_vs_epoch.png)
 
-```bash
-python src/demo_web_app.py
-```
+### Hyperparameter sweeps
 
-Open `http://127.0.0.1:8000`. Runs zero-shot inference on uploaded images, outputs under `outputs/web_demo/`.
+| | AbsRel ↓ | δ₁ ↑ |
+| --- | --- | --- |
+| **α sweep** | ![](docs/assets/figures/sweeps/abs_rel_vs_alpha.png) | ![](docs/assets/figures/sweeps/delta1_vs_alpha.png) |
+| **learning-rate sweep** | ![](docs/assets/figures/sweeps/abs_rel_vs_learning_rate.png) | ![](docs/assets/figures/sweeps/delta1_vs_learning_rate.png) |
+| **β sweep** | ![](docs/assets/figures/sweeps/abs_rel_vs_grad_weight.png) | |
 
-## Status
+### Qualitative
 
-The proof-of-concept fine-tune (Zero-shot vs Fine-tuned table above) is the baseline going into the final project. The current focus is the distillation + gradient-loss recipe described in [Method](#method); training and ablation results will replace the placeholder rows in the report and presentation once the GPU runs are complete.
+NYU-v2 test sample — RGB | GT | prediction | error:
+
+![NYU qualitative](docs/assets/figures/qualitative/compare_000000.png)
+
+KITTI outdoor frame — input vs. predicted depth:
+
+![KITTI input](docs/assets/figures/kitti_input_0000000000.png)
+![KITTI depth](docs/assets/figures/kitti_depth_0000000000.png)
+
+---
+
+## What This Repo Verifies
+
+- ✅ Source compiles cleanly (`python -m compileall src`)
+- ✅ `DepthEstimationPipeline` loads from `LiheYoung/depth-anything-small-hf`
+- ✅ Train / val / test splits are real and frozen (see `outputs/metrics/*_per_image.csv` after eval runs)
+- ✅ Every metric in the paper is reproducible from `docs/data/` (sweep JSON) and `docs/data/kitti_*_summary.json`
+- ✅ Every figure in the paper is a committed PNG under `docs/assets/figures/`
+- ✅ Best-found checkpoint saved at `checkpoints/distill_best.pt`
+
+Full diagnostics: [`docs/diagnostics.md`](docs/diagnostics.md)
+
+---
+
+## References
+
+- L. Yang et al., **Depth Anything**, CVPR 2024.
+- X. He et al., **Distill Any Depth**, arXiv 2502.19204, 2025.
+- S.F. Bhat et al., **ZoeDepth**, arXiv 2302.12288, 2023.
+- R. Ranftl et al., **Vision Transformers for Dense Prediction (DPT)**, ICCV 2021.
+- R. Ranftl et al., **MiDaS**, TPAMI 2022.
+- M. Oquab et al., **DINOv2**, arXiv 2304.07193, 2023.
+- N. Silberman et al., **NYU-v2**, ECCV 2012.
+- A. Geiger et al., **KITTI**, IJRR 2013.
+
+Full bibliography in [`paper/refs.bib`](paper/refs.bib).
