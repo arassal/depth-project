@@ -1,0 +1,489 @@
+\documentclass[aspectratio=169,10pt]{beamer}
+\usetheme{metropolis}
+\metroset{numbering=fraction, progressbar=foot, block=fill}
+
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc,fit,backgrounds}
+\usepackage{graphicx}
+\graphicspath{{figs/}}
+
+% Compact, readable monospaced inline
+\usepackage[scaled=0.85]{beramono}
+
+% Section colors
+\definecolor{accent}{HTML}{A84425}
+\definecolor{good}{HTML}{2F7A46}
+\definecolor{bad}{HTML}{A83232}
+\definecolor{muted}{HTML}{645A54}
+\setbeamercolor{progress bar}{fg=accent}
+\setbeamercolor{title separator}{fg=accent}
+\setbeamercolor{frametitle}{bg=black!90,fg=white}
+
+\title{Distillation and Edge-Aware Loss\\for Efficient Monocular Depth Estimation}
+\subtitle{ECE 4990 -- Cal Poly Pomona, Spring 2026}
+\author{Alexander Assal \and Parsa Ghasemi}
+\institute{Department of Electrical and Computer Engineering\\
+\texttt{arassal@cpp.edu} \quad \texttt{mghasemi@cpp.edu}\\[0.5em]
+\textcolor{accent}{\texttt{github.com/arassal/depth-project}}}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+% --------------------------------------------------------------------------
+\begin{frame}{Outline}
+\begin{itemize}
+  \item Problem: monocular relative depth from a single RGB image
+  \item Method: distill Depth Anything Large $\rightarrow$ Small with multi-scale gradient supervision
+  \item Datasets: NYU-v2 (indoor) and KITTI eigen subset (outdoor)
+  \item Three-axis hyperparameter sweep over $\alpha$, $\beta$, learning rate
+  \item Main finding: \textbf{learning rate dominates loss balance in small-data distillation}
+\end{itemize}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\section{Problem}
+
+\begin{frame}{Monocular depth is ill-posed}
+\begin{itemize}
+  \item A single RGB image is consistent with infinitely many world geometries
+  \item Recovery is up to scale $+$ shift unless additional information is given
+  \item Modern systems train relative depth and align scale at evaluation
+\end{itemize}
+\vspace{0.4em}
+\begin{block}{Foundation model used here}
+\textbf{Depth Anything} (Yang et al., CVPR 2024) -- DPT head on DINOv2 ViT backbone,
+trained on 1.5M labeled + 62M pseudo-labeled images.
+\begin{itemize}
+  \item \textbf{Small} -- $\sim$25M params -- our \emph{student}, deployable on 4\,GB GPU
+  \item \textbf{Large} -- $\sim$335M params -- our \emph{teacher}, frozen
+\end{itemize}
+\end{block}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\section{Related Work}
+
+\begin{frame}{Related work}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\textwidth}
+\textbf{Backbone lineage}
+\begin{itemize}\setlength{\itemsep}{0.25em}
+  \item Eigen et al.\ 2014 -- first deep monocular depth
+  \item DPT (Ranftl 2021) -- dense prediction head
+  \item DINOv2 (Oquab 2023) -- self-sup.\ ViT
+  \item MiDaS (Ranftl 2022) -- relative depth + scale align
+  \item Depth Anything v1/v2 (Yang 2024)
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Methods we adapt}
+\begin{itemize}\setlength{\itemsep}{0.25em}
+  \item Hinton 2015 -- knowledge distillation
+  \item Distill-Any-Depth (He 2025) -- affine-invariant output distillation
+  \item ZoeDepth (Bhat 2023) -- multi-scale gradient $L_1$
+  \item BTS (Lee 2019) -- silog loss
+\end{itemize}
+\end{column}
+\end{columns}
+\vspace{0.5em}
+\begin{alertblock}{Our contribution}
+Empirical, not architectural: a controlled three-axis study of how
+distillation and gradient supervision behave in a \emph{small-data} fine-tune regime.
+\end{alertblock}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\section{Method}
+
+\begin{frame}{Architecture: teacher--student distillation}
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  >=Latex,
+  block/.style={draw, rounded corners=2pt, align=center, inner sep=3pt,
+                fill=blue!10, minimum height=0.65cm, minimum width=1.5cm},
+  bigblock/.style={draw, rounded corners=2pt, align=center, inner sep=3pt,
+                   fill=orange!18, minimum height=0.8cm, minimum width=1.7cm},
+  loss/.style={draw, rounded corners=2pt, align=center, inner sep=3pt,
+               fill=red!12, minimum height=0.55cm, minimum width=1.4cm},
+  io/.style={draw, rounded corners=2pt, align=center, inner sep=3pt,
+             fill=gray!15, minimum height=0.6cm, minimum width=1.2cm},
+  arrow/.style={->, thick},
+]
+% Inputs
+\node[io] (rgb) at (0,0) {RGB\\ $256{\times}256$};
+\node[io] (gt)  at (0,-2.4) {GT depth\\ NYU-v2};
+
+% Student
+\node[block, right=0.5cm of rgb] (s_enc) {ViT-S\\ encoder};
+\node[block, right=0.25cm of s_enc] (s_dec) {DPT head};
+\node[block, right=0.25cm of s_dec] (s_out) {Student\\ $\hat d_s$};
+
+% Teacher
+\node[bigblock, above=0.45cm of s_enc] (t_enc) {ViT-L encoder\\ \emph{frozen}};
+\node[bigblock, right=0.25cm of t_enc] (t_dec) {DPT head\\ \emph{frozen}};
+\node[block, right=0.25cm of t_dec] (t_out) {Teacher\\ $\hat d_t$};
+
+% Losses
+\node[loss] (l_dist) at ($(s_out)+(2.3,1.15)$) {$\mathcal{L}_{\text{distill}}$};
+\node[loss] (l_base) at ($(s_out)+(2.3,0)$) {$\mathcal{L}_{\text{base}}$};
+\node[loss] (l_grad) at ($(s_out)+(2.3,-1.15)$) {$\mathcal{L}_{\text{grad}}$};
+
+\node[draw, rounded corners=2pt, fill=red!22, right=0.45cm of l_base,
+      minimum height=1.6cm, minimum width=1.9cm, align=center] (total)
+      {$\mathcal{L}_{\text{total}}=$\\$(1{-}\alpha)\mathcal{L}_{\text{base}}$\\$+\alpha\mathcal{L}_{\text{distill}}$\\$+\beta\mathcal{L}_{\text{grad}}$};
+
+% Flows
+\draw[arrow] (rgb) -- (s_enc);
+\draw[arrow] (s_enc) -- (s_dec);
+\draw[arrow] (s_dec) -- (s_out);
+\draw[arrow] (rgb.north) |- (t_enc.west);
+\draw[arrow] (t_enc) -- (t_dec);
+\draw[arrow] (t_dec) -- (t_out);
+
+\draw[arrow] (s_out) -- (l_dist);
+\draw[arrow] (t_out) -- (l_dist);
+\draw[arrow] (s_out) -- (l_base);
+\draw[arrow] (gt) -| (l_base);
+\draw[arrow] (s_out) -- (l_grad);
+\draw[arrow] (gt) -| (l_grad);
+
+\draw[arrow] (l_dist) -- (total);
+\draw[arrow] (l_base) -- (total);
+\draw[arrow] (l_grad) -- (total);
+
+\draw[->, dashed, thick, draw=gray] (total) to[bend left=60] node[above, sloped] {\scriptsize grad. update} (s_enc.north);
+\end{tikzpicture}
+
+\vspace{0.4em}
+\footnotesize Same RGB feeds both networks. Teacher is loaded once and held in
+\texttt{eval()} with \texttt{requires\_grad=False}. Student is the only model with trainable weights.
+\end{frame}
+
+% --------------------------------------------------------------------------
+\begin{frame}{Loss function}
+\begin{block}{Total loss}
+\[
+\mathcal{L}_{\text{total}} \;=\; (1-\alpha)\,\mathcal{L}_{\text{base}}(\hat d_s, d_{\text{gt}})
+\;+\; \alpha\,\mathcal{L}_{\text{distill}}(\hat d_s, \hat d_t)
+\;+\; \beta\,\mathcal{L}_{\text{grad}}(\hat d_s, d_{\text{gt}})
+\]
+\end{block}
+
+\textbf{Affine-invariant $L_1$} (used by $\mathcal{L}_{\text{base}}$ and $\mathcal{L}_{\text{distill}}$):
+robust per-sample normalization by median + MAD, then per-pixel $L_1$.
+\[
+\tilde d(p) = \frac{d(p) - \operatorname{med}(d|_{\mathcal V})}{\overline{|d|_{\mathcal V} - \operatorname{med}(d|_{\mathcal V})|}}
+\qquad
+\mathcal{L}_{\text{ail1}} = \tfrac{1}{|\mathcal V|}\!\sum_{p\in\mathcal V}\!\big|\tilde d(p) - \tilde d^{\star}(p)\big|
+\]
+
+\textbf{Multi-scale gradient $L_1$}: penalize gradient disagreement at scales $\{1,2,4\}$.
+
+\vspace{0.3em}
+\begin{itemize}\setlength{\itemsep}{0.15em}
+  \item $\alpha=0$ -- pure supervised fine-tune  \hfill $\alpha=1$ -- pure distillation
+  \item $\beta$ -- second-order edge sharpening
+\end{itemize}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\begin{frame}{Training procedure}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.52\textwidth}
+\textbf{Optimization}
+\begin{itemize}\setlength{\itemsep}{0.2em}
+  \item AdamW, weight decay $10^{-4}$
+  \item Gradient clip @ $L_2$ norm 1.0
+  \item Batch size 1, image 256$\times$256 (fits 4\,GB GPU)
+  \item 2 epochs on the PoC subset
+  \item AMP mixed precision on CUDA
+\end{itemize}
+\end{column}
+\begin{column}{0.44\textwidth}
+\textbf{Sweep harness} \texttt{src/sweep.py}
+\begin{itemize}\setlength{\itemsep}{0.2em}
+  \item YAML grid $\rightarrow$ Cartesian product
+  \item Per-run isolated artifacts
+  \item \texttt{train.py} $+$ \texttt{eval.py} subprocess per point
+  \item Aggregated to \texttt{results.json}
+\end{itemize}
+\end{column}
+\end{columns}
+\vspace{0.5em}
+\begin{exampleblock}{Reproducibility}
+\texttt{python src/train.py --config configs/distill.yaml}\\
+\texttt{python src/sweep.py --base configs/distill.yaml --grid configs/sweeps/lr\_at\_alpha07.yaml --out outputs/sweeps/lr}
+\end{exampleblock}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\section{Experiments}
+
+\begin{frame}{Datasets and metrics}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.5\textwidth}
+\textbf{Datasets}
+\vspace{0.3em}
+\begin{table}[H]\centering\small
+\begin{tabular}{lrr}
+\toprule
+Split & NYU-v2 & KITTI \\
+\midrule
+Train & 450 & --- \\
+Val   & 60  & --- \\
+Test  & 59  & 100 \\
+\midrule
+Range (m) & [0.001, 10] & [0.001, 80] \\
+\bottomrule
+\end{tabular}
+\end{table}
+Both evaluated at $256{\times}256$ for internal comparability.
+\end{column}
+\begin{column}{0.5\textwidth}
+\textbf{Metrics} (all after per-image scale\,+\,shift align)
+\begin{itemize}\setlength{\itemsep}{0.15em}
+  \item $\text{AbsRel} = \tfrac{1}{N}\sum |\hat d - d|/d$\quad$\downarrow$
+  \item $\text{RMSE} = \sqrt{\tfrac{1}{N}\sum (\hat d - d)^2}$\quad$\downarrow$
+  \item $\delta_n = $ fraction with $\max(\hat d/d, d/\hat d) < 1.25^n$\quad$\uparrow$
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\section{Results}
+
+\begin{frame}{NYU-v2 test results (59 images, 256$\times$256)}
+\begin{table}[H]\centering
+\small
+\begin{tabular}{lcccccc}
+\toprule
+Setting & $\alpha$ & $\beta$ & lr & AbsRel $\downarrow$ & $\delta_1$ $\uparrow$ & RMSE $\downarrow$ \\
+\midrule
+Zero-shot DA-S                          & --- & --- & ---       & 0.1550 & 0.8146 & 0.5375 \\
+Distilled, default \texttt{distill.yaml} & 0.5 & 0.1 & $10^{-5}$ & \textcolor{bad}{0.2791} & \textcolor{bad}{0.6292} & \textcolor{bad}{0.8898} \\
+\textbf{Distilled, best (ours)}          & 0.7 & 0.3 & $10^{-7}$ & \textcolor{good}{\textbf{0.1505}} & \textcolor{good}{\textbf{0.8164}} & \textcolor{good}{\textbf{0.5262}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{0.4em}
+\begin{itemize}\setlength{\itemsep}{0.2em}
+  \item Default config \emph{collapses} the student -- AbsRel almost doubles.
+  \item Best swept config \emph{improves} every metric over zero-shot.
+  \item Mean improvement is small ($-$0.0045 AbsRel) but consistent across all $\delta_n$.
+\end{itemize}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\begin{frame}{Training collapse at default learning rate}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.32\textwidth}
+\includegraphics[width=\linewidth]{loss_vs_epoch.png}\\[-0.2em]
+\centerline{\scriptsize Train loss}
+\end{column}
+\begin{column}{0.32\textwidth}
+\includegraphics[width=\linewidth]{val_absrel_vs_epoch.png}\\[-0.2em]
+\centerline{\scriptsize Val AbsRel}
+\end{column}
+\begin{column}{0.32\textwidth}
+\includegraphics[width=\linewidth]{val_delta1_vs_epoch.png}\\[-0.2em]
+\centerline{\scriptsize Val $\delta_1$}
+\end{column}
+\end{columns}
+\vspace{0.4em}
+\begin{itemize}\setlength{\itemsep}{0.2em}
+  \item Epoch 1 tracks zero-shot ($\approx 0.157$ val AbsRel).
+  \item Epoch 2: val AbsRel $\to 1.0$, $\delta_1 \to 0$. The student saturates to a near-constant output.
+  \item Trigger: batch $=1$ $+$ 450-image train set $+$ lr $=10^{-5}$.
+\end{itemize}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\begin{frame}{Ablation: distillation weight $\alpha$}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.5\textwidth}
+\includegraphics[width=\linewidth]{sweeps/abs_rel_vs_alpha.png}
+\centerline{\scriptsize AbsRel vs $\alpha$ ($\downarrow$ better)}
+\end{column}
+\begin{column}{0.5\textwidth}
+\includegraphics[width=\linewidth]{sweeps/delta1_vs_alpha.png}
+\centerline{\scriptsize $\delta_1$ vs $\alpha$ ($\uparrow$ better)}
+\end{column}
+\end{columns}
+\vspace{0.3em}
+\footnotesize Fixed $\beta=0.1$, $\text{lr}=10^{-5}$. Best within-sweep is $\alpha=0.7$ (AbsRel $0.202$).
+\textbf{Every point is still worse than zero-shot} ($0.155$) at this learning rate.
+\end{frame}
+
+% --------------------------------------------------------------------------
+\begin{frame}{Ablation: learning rate (the dominant variable)}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.5\textwidth}
+\includegraphics[width=\linewidth]{sweeps/abs_rel_vs_learning_rate.png}
+\centerline{\scriptsize AbsRel vs learning rate}
+\end{column}
+\begin{column}{0.5\textwidth}
+\includegraphics[width=\linewidth]{sweeps/delta1_vs_learning_rate.png}
+\centerline{\scriptsize $\delta_1$ vs learning rate}
+\end{column}
+\end{columns}
+\vspace{0.3em}
+\small
+\begin{tabular}{lcccc}
+\toprule
+lr & $10^{-7}$ & $10^{-6}$ & $5\cdot 10^{-6}$ & $10^{-5}$ \\
+\midrule
+AbsRel & \textcolor{good}{0.151} & \textcolor{good}{0.151} & 0.174 & \textcolor{bad}{0.186} \\
+$\delta_1$ & \textcolor{good}{0.815} & 0.811 & 0.765 & \textcolor{bad}{0.749} \\
+\bottomrule
+\end{tabular}\\[0.4em]
+\footnotesize Sharp transition between $10^{-6}$ and $5\cdot 10^{-6}$.
+Below the boundary $=$ stable, above $=$ collapse.
+\end{frame}
+
+% --------------------------------------------------------------------------
+\begin{frame}{Ablation: gradient weight $\beta$ (second-order)}
+\centering
+\includegraphics[width=0.65\linewidth]{sweeps/abs_rel_vs_grad_weight.png}\\[0.2em]
+{\scriptsize Fixed $\alpha=0.7$, $\text{lr}=10^{-7}$.}
+\begin{table}[H]\small
+\begin{tabular}{cccc}
+\toprule
+$\beta$ & 0.0 & 0.1 & 0.3 \\
+\midrule
+AbsRel ($\downarrow$) & 0.152 & 0.152 & \textbf{0.150} \\
+$\delta_1$ ($\uparrow$) & 0.8142 & 0.8163 & \textbf{0.8164} \\
+\bottomrule
+\end{tabular}\end{table}
+\footnotesize Once the learning rate is stabilized, $\beta$ adds a small but
+real boundary-sharpening signal -- direction is correct, magnitude is modest.
+\end{frame}
+
+% --------------------------------------------------------------------------
+\begin{frame}{Qualitative: NYU-v2 (RGB $\,|\,$ GT $\,|\,$ Pred $\,|\,$ Error)}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.5\textwidth}
+\includegraphics[width=\linewidth]{qualitative/compare_000000.png}\\[0.2em]
+\includegraphics[width=\linewidth]{qualitative/compare_000020.png}
+\end{column}
+\begin{column}{0.5\textwidth}
+\includegraphics[width=\linewidth]{qualitative/compare_000010.png}\\[0.2em]
+\includegraphics[width=\linewidth]{qualitative/compare_000030.png}
+\end{column}
+\end{columns}
+\vspace{0.2em}
+\footnotesize Coarse scene structure is preserved; error concentrates at depth
+discontinuities -- exactly the regime the gradient loss is designed to address.
+\end{frame}
+
+% --------------------------------------------------------------------------
+\begin{frame}{KITTI cross-domain (out-of-distribution)}
+\begin{table}[H]\centering\small
+\begin{tabular}{lccc}
+\toprule
+Setting & AbsRel $\downarrow$ & $\delta_1$ $\uparrow$ & RMSE $\downarrow$ \\
+\midrule
+Zero-shot DA-S  & 0.4022 & 0.3555 & 7.94 \\
+Distilled       & 0.4035 & 0.3485 & 7.93 \\
+\bottomrule
+\end{tabular}\end{table}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\textwidth}
+\includegraphics[width=\linewidth]{kitti_input_0000000000.png}\\
+\centerline{\scriptsize RGB input}
+\end{column}
+\begin{column}{0.48\textwidth}
+\includegraphics[width=\linewidth]{kitti_depth_0000000000.png}\\
+\centerline{\scriptsize Predicted depth}
+\end{column}
+\end{columns}
+
+\vspace{0.3em}
+\footnotesize NYU-v2 improvement does \emph{not} transfer to KITTI.
+At $\text{lr}=10^{-7}$ the encoder barely moves from its pretrained
+initialization, so cross-domain behavior is inherited from the original
+Depth Anything training mixture.
+\end{frame}
+
+% --------------------------------------------------------------------------
+\section{Discussion}
+
+\begin{frame}{Discussion: what the sweeps say}
+\begin{block}{Dominant axis is the learning rate, not the loss balance}
+\begin{itemize}\setlength{\itemsep}{0.15em}
+  \item Variance from $\alpha$ sweep: $\sim$0.09 AbsRel (at fixed $\text{lr}=10^{-5}$)
+  \item Variance from lr sweep: $\sim$0.03 AbsRel (at fixed $\alpha=0.7$)
+  \item But the lr range covers the boundary between ``worse than ZS'' and ``better than ZS''.
+\end{itemize}
+\end{block}
+
+\begin{block}{Why the win is small at the stable end}
+At $\text{lr}=10^{-7}$ the student barely moves from its pretrained weights.
+The recipe's ceiling, by construction, is the pretrained model itself.
+\end{block}
+
+\textbf{What would unlock larger gains}
+\begin{itemize}\setlength{\itemsep}{0.15em}
+  \item Effective batch size $> 1$ (gradient accumulation $\times$ 16+)
+  \item Full cross-context distillation from Distill-Any-Depth (He 2025)
+  \item More labeled training data -- the GT signal becomes more trustworthy
+\end{itemize}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\begin{frame}{Limitations}
+\begin{itemize}\setlength{\itemsep}{0.3em}
+  \item \textbf{Resolution.} All evaluation at $256{\times}256$ -- below native NYU-v2/KITTI. Absolute KITTI numbers are inflated; comparisons across rows in our tables remain valid.
+  \item \textbf{Cross-domain breadth.} Only one OOD distribution (KITTI). Stronger claim would need multiple outdoor + driving datasets.
+  \item \textbf{Single seed per grid point.} No run-to-run variance estimate. The reproducibility of the collapse signature across configurations suggests the qualitative finding is not seed-specific.
+  \item \textbf{No cross-context distillation.} We use only the output-level half of the Distill-Any-Depth recipe; the cross-context crop variant requires more compute.
+\end{itemize}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\section{Conclusion}
+
+\begin{frame}{Conclusion}
+\begin{itemize}\setlength{\itemsep}{0.25em}
+  \item Built a clean open-source distillation pipeline for Depth Anything Small using a frozen Large teacher and a multi-scale gradient loss.
+  \item Three-axis sweep ($\alpha$, $\beta$, lr) on NYU-v2 PoC subset + KITTI eigen subset.
+  \item Empirically tuned configuration beats pretrained zero-shot on every NYU-v2 metric (AbsRel $0.1505$ vs.\ $0.1550$; $\delta_1$ $0.8164$ vs.\ $0.8146$).
+  \item No cross-domain transfer at our conservative learning rate.
+  \item \textbf{Headline}: in small-data distillation, learning-rate sensitivity dominates loss balance.
+\end{itemize}
+
+\vspace{0.6em}
+\begin{center}
+\large\textcolor{accent}{\texttt{github.com/arassal/depth-project}}
+\end{center}
+\end{frame}
+
+% --------------------------------------------------------------------------
+\section{Author contributions}
+
+\begin{frame}{Author contributions}
+\textbf{Alexander Assal}
+\begin{itemize}\setlength{\itemsep}{0.1em}
+  \item Training/eval pipelines, distillation hook, multi-scale gradient loss
+  \item Sweep harness, web demo, GPU experiments, analysis
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{Parsa Ghasemi}
+\begin{itemize}\setlength{\itemsep}{0.1em}
+  \item Literature survey, dataset preparation, manifest tooling
+  \item Qualitative analysis, figures, manuscript drafting
+\end{itemize}
+
+\vspace{0.5em}
+Both authors jointly wrote the manuscript and prepared this presentation.
+\end{frame}
+
+\end{document}
