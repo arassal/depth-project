@@ -615,6 +615,25 @@ on every metric. The improvement is small in absolute terms but
 consistent across metrics: AbsRel improves by approximately $2.9\%$
 relative and $\delta_1$ by approximately $0.2$ percentage points.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{figs/training/multimetric_bars.png}
+\caption{NYU-v2 test metrics for three configurations: pretrained
+zero-shot, the default \texttt{configs/distill.yaml} that collapses,
+and the best-found configuration from the three-axis sweep. The
+collapse mode raises every error metric and lowers every $\delta$
+threshold; the best-found configuration is at or above zero-shot on
+all five metrics.}
+\label{fig:multimetric}
+\end{figure*}
+
+\cref{fig:multimetric} shows all five reported NYU-v2 metrics for the
+three headline configurations side by side. The pattern is consistent:
+where the default distill config worsens every metric (RMSE jumps by
+$66\%$, $\delta_1$ drops by $18.5$ percentage points), the
+swept-best config tightly matches zero-shot on $\delta_2$ and
+$\delta_3$ while slightly improving AbsRel, RMSE, and $\delta_1$.
+
 \subsection{KITTI Cross-Domain Evaluation}
 \label{sec:kitti}
 
@@ -637,11 +656,23 @@ relative to native-resolution KITTI evaluations.}
 \label{tab:kitti}
 \end{table}
 
-\cref{tab:kitti} reports the cross-domain evaluation. The student
-checkpoint trained on NYU-v2 indoor scenes does not transfer its
-NYU-v2 improvement to KITTI outdoor scenes. Both AbsRel and $\delta_1$
-are essentially unchanged ($\pm 0.01$ on AbsRel and $\pm 0.7$ percentage
-points on $\delta_1$). We interpret this as a direct consequence of the
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figs/training/kitti_per_image_scatter.png}
+\caption{Per-image AbsRel on the KITTI eigen-test subset, distilled
+checkpoint vs.\ zero-shot. Points scatter symmetrically around the
+$y=x$ diagonal: the distilled checkpoint changes individual KITTI
+images by small amounts in both directions, with no systematic
+direction of improvement.}
+\label{fig:kittiscatter}
+\end{figure}
+
+\cref{tab:kitti} reports the cross-domain evaluation and
+\cref{fig:kittiscatter} shows the corresponding per-image scatter.
+The student checkpoint trained on NYU-v2 indoor scenes does not
+transfer its NYU-v2 improvement to KITTI outdoor scenes. Both
+AbsRel and $\delta_1$ are essentially unchanged ($\pm 0.01$ on AbsRel
+and $\pm 0.7$ percentage points on $\delta_1$). We interpret this as a direct consequence of the
 extreme conservatism of the best-found configuration: at $\text{lr}=10^{-7}$
 the encoder simply does not move far enough from its pretrained
 initialization to shift the cross-domain behavior, which is itself
@@ -698,9 +729,20 @@ balance.}
 \label{fig:alpha}
 \end{figure}
 
-\textbf{Learning rate.} \cref{fig:lr} plots AbsRel and $\delta_1$ over
-the learning rates $\{10^{-7}, 10^{-6}, 5{\cdot}10^{-6}, 10^{-5}\}$ at
-fixed $\alpha=0.7$ and $\beta=0.1$. There is a sharp transition: at
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{figs/training/lr_headline.png}
+\caption{Headline finding: a clean transition in performance across
+two orders of magnitude in the learning rate. Left: AbsRel. Right:
+$\delta_1$. The shaded green region matches or beats the zero-shot
+baseline (black dashed line); the shaded red region collapses below
+it.}
+\label{fig:lrheadline}
+\end{figure*}
+
+\textbf{Learning rate.} \cref{fig:lrheadline} is the central
+empirical figure of the paper: the curves of validation AbsRel and
+$\delta_1$ vs.\ learning rate at fixed $\alpha=0.7$ and $\beta=0.1$. There is a sharp transition: at
 $10^{-7}$ and $10^{-6}$ the recipe is stable and matches the zero-shot
 baseline almost exactly (AbsRel $\approx 0.151$ at both). At
 $5{\cdot}10^{-6}$ the model starts to drift (AbsRel $0.174$,
@@ -780,10 +822,34 @@ divider marks the boundary between ``$\text{lr}\ge 5{\cdot}10^{-6}$''
 \subsection{Per-Image Error Analysis}
 \label{sec:perimage}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.99\columnwidth]{figs/training/absrel_histogram_comparison.png}
+\caption{Per-image AbsRel distribution on the NYU-v2 test split.
+Zero-shot AbsRel concentrates below $0.2$; the default distilled
+checkpoint shifts the mass right and grows a heavy tail beyond
+$0.4$. Vertical dashed lines mark the means ($0.155$ vs $0.279$).}
+\label{fig:absrelhist}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.99\columnwidth]{figs/training/per_image_scatter_default.png}
+\caption{Per-image scatter -- distilled (default config, $y$-axis)
+vs.\ zero-shot ($x$-axis) AbsRel. Points above the $y=x$ line are
+images on which the distilled checkpoint is worse; below the line are
+images on which it is better. The default-config student is worse on
+$58$ of $59$ test images.}
+\label{fig:perimagescatter}
+\end{figure}
+
 We examine the per-image AbsRel distribution to understand whether the
 small mean improvement of the best-found configuration over zero-shot
 is concentrated in a few large gains or spread thinly across the test
-set. Reading the per-image CSV files
+set. \cref{fig:absrelhist} and \cref{fig:perimagescatter} together
+make the failure mode of the default configuration visually concrete:
+the histogram shifts to the right and the scatter lands almost
+entirely above the diagonal. Reading the per-image CSV files
 (\texttt{outputs/metrics/distill\_test\_per\_image.csv} and
 \texttt{outputs/metrics/zero\_shot\_nyu\_per\_image.csv}) directly,
 the best-found configuration matches the zero-shot prediction within
@@ -815,27 +881,37 @@ but second-order improvement on top of an already stable recipe.}
 \subsection{Training Dynamics}
 \label{sec:training}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{figs/training/training_curves_default.png}
+\caption{Training dynamics of the default distillation configuration
+($\alpha=0.5$, $\beta=0.1$, $\text{lr}=10^{-5}$). Epoch $1$ tracks the
+zero-shot baseline closely. Epoch $2$ collapses: validation AbsRel
+returns to $\approx 1.0$ and $\delta_1$ falls to $0.0$, the signature
+of student output saturating to a near-constant value.}
+\label{fig:trainingcurves}
+\end{figure*}
+
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.49\columnwidth]{figs/loss_vs_epoch.png}
-\includegraphics[width=0.49\columnwidth]{figs/val_absrel_vs_epoch.png}\\
-\vspace{0.3em}
-\includegraphics[width=0.49\columnwidth]{figs/val_delta1_vs_epoch.png}
-\includegraphics[width=0.49\columnwidth]{figs/test_absrel_histogram.png}
-\caption{\emph{Top:} training loss and validation AbsRel vs.\ epoch for
-the default distillation configuration ($\alpha=0.5$, $\beta=0.1$,
-$\text{lr}=10^{-5}$). Validation AbsRel collapses to $1.0$ at epoch
-$2$, the signature of model output saturation. \emph{Bottom-left:}
-validation $\delta_1$ over the same run; falls to $0.0$.
-\emph{Bottom-right:} per-image AbsRel histogram on the NYU-v2 test
-split for the zero-shot baseline.}
-\label{fig:trainingcurves}
+\includegraphics[width=0.99\columnwidth]{figs/training/loss_components.png}
+\caption{Loss-component decomposition for the default distill
+configuration. The base loss (vs.\ NYU-v2 ground truth) and the
+distillation loss (vs.\ teacher prediction) carry most of the total
+loss magnitude; the multi-scale gradient term is a smaller, sharper
+boundary-supervision signal.}
+\label{fig:losscomponents}
 \end{figure}
 
 \cref{fig:trainingcurves} shows the full training trajectory of the
 default distill configuration. Epoch $1$ tracks the zero-shot AbsRel
 closely ($0.157$ on val) and then collapses in epoch $2$: validation
 AbsRel returns to almost exactly $1.0$ and $\delta_1$ drops to $0.0$.
+\cref{fig:losscomponents} breaks the per-batch loss into its three
+components: the GT-aligned base term and the teacher-aligned
+distillation term contribute comparably (each $\approx 1.0$ per
+batch in epoch 2), while the multi-scale gradient term is a
+smaller-magnitude refinement signal.
 The collapse pattern is consistent with the student emitting a
 near-constant prediction at epoch $2$, which is consistent with the
 loss surface explored by AdamW at $\text{lr}=10^{-5}$ on a batch size

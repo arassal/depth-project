@@ -271,37 +271,45 @@ Distilled, default \texttt{distill.yaml} & 0.5 & 0.1 & $10^{-5}$ & \textcolor{ba
 \bottomrule
 \end{tabular}
 \end{table}
-
-\vspace{0.4em}
-\begin{itemize}\setlength{\itemsep}{0.2em}
+\vspace{0.2em}
+\begin{itemize}\setlength{\itemsep}{0.15em}
   \item Default config \emph{collapses} the student -- AbsRel almost doubles.
   \item Best swept config \emph{improves} every metric over zero-shot.
-  \item Mean improvement is small ($-$0.0045 AbsRel) but consistent across all $\delta_n$.
 \end{itemize}
+\end{frame}
+
+\begin{frame}{All five metrics, side by side}
+\centering
+\includegraphics[width=0.95\textwidth]{training/multimetric_bars.png}\\[0.3em]
+\footnotesize The collapse mode hurts everything; the best-found configuration
+matches or beats zero-shot on every metric.
 \end{frame}
 
 % --------------------------------------------------------------------------
 \begin{frame}{Training collapse at default learning rate}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.32\textwidth}
-\includegraphics[width=\linewidth]{loss_vs_epoch.png}\\[-0.2em]
-\centerline{\scriptsize Train loss}
-\end{column}
-\begin{column}{0.32\textwidth}
-\includegraphics[width=\linewidth]{val_absrel_vs_epoch.png}\\[-0.2em]
-\centerline{\scriptsize Val AbsRel}
-\end{column}
-\begin{column}{0.32\textwidth}
-\includegraphics[width=\linewidth]{val_delta1_vs_epoch.png}\\[-0.2em]
-\centerline{\scriptsize Val $\delta_1$}
-\end{column}
-\end{columns}
-\vspace{0.4em}
-\begin{itemize}\setlength{\itemsep}{0.2em}
+\centering
+\includegraphics[width=0.95\textwidth]{training/training_curves_default.png}\\[0.3em]
+\begin{itemize}\setlength{\itemsep}{0.15em}
   \item Epoch 1 tracks zero-shot ($\approx 0.157$ val AbsRel).
-  \item Epoch 2: val AbsRel $\to 1.0$, $\delta_1 \to 0$. The student saturates to a near-constant output.
+  \item Epoch 2: val AbsRel $\to 1.0$, $\delta_1 \to 0$ -- student saturates to near-constant.
   \item Trigger: batch $=1$ $+$ 450-image train set $+$ lr $=10^{-5}$.
 \end{itemize}
+\end{frame}
+
+\begin{frame}{Loss component decomposition}
+\centering
+\includegraphics[width=0.78\textwidth]{training/loss_components.png}\\[0.3em]
+\footnotesize Base and distill losses contribute comparably ($\approx 1.0$ per batch at
+epoch 2); the multi-scale gradient term is a smaller boundary signal ($\sim 0.5$).
+\end{frame}
+
+\begin{frame}{What the default collapse looks like, per image}
+\centering
+\includegraphics[width=0.50\textwidth]{training/absrel_histogram_comparison.png}\hfill
+\includegraphics[width=0.46\textwidth]{training/per_image_scatter_default.png}\\[0.3em]
+\footnotesize \textbf{Left}: histogram shifts right $+$ grows a heavy tail.\quad
+\textbf{Right}: 58 of 59 test images get worse (above $y=x$). The collapse is uniform,
+not driven by outliers.
 \end{frame}
 
 % --------------------------------------------------------------------------
@@ -322,29 +330,11 @@ Distilled, default \texttt{distill.yaml} & 0.5 & 0.1 & $10^{-5}$ & \textcolor{ba
 \end{frame}
 
 % --------------------------------------------------------------------------
-\begin{frame}{Ablation: learning rate (the dominant variable)}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.5\textwidth}
-\includegraphics[width=\linewidth]{sweeps/abs_rel_vs_learning_rate.png}
-\centerline{\scriptsize AbsRel vs learning rate}
-\end{column}
-\begin{column}{0.5\textwidth}
-\includegraphics[width=\linewidth]{sweeps/delta1_vs_learning_rate.png}
-\centerline{\scriptsize $\delta_1$ vs learning rate}
-\end{column}
-\end{columns}
-\vspace{0.3em}
-\small
-\begin{tabular}{lcccc}
-\toprule
-lr & $10^{-7}$ & $10^{-6}$ & $5\cdot 10^{-6}$ & $10^{-5}$ \\
-\midrule
-AbsRel & \textcolor{good}{0.151} & \textcolor{good}{0.151} & 0.174 & \textcolor{bad}{0.186} \\
-$\delta_1$ & \textcolor{good}{0.815} & 0.811 & 0.765 & \textcolor{bad}{0.749} \\
-\bottomrule
-\end{tabular}\\[0.4em]
-\footnotesize Sharp transition between $10^{-6}$ and $5\cdot 10^{-6}$.
-Below the boundary $=$ stable, above $=$ collapse.
+\begin{frame}{Ablation: learning rate -- the dominant variable}
+\centering
+\includegraphics[width=0.94\textwidth]{training/lr_headline.png}\\[0.3em]
+\footnotesize Sharp transition between $10^{-6}$ and $5\cdot 10^{-6}$. Green band = at-or-above
+zero-shot; red band = collapse. The same band-width holds for $\delta_1$.
 \end{frame}
 
 % --------------------------------------------------------------------------
@@ -393,23 +383,11 @@ Zero-shot DA-S  & 0.4022 & 0.3555 & 7.94 \\
 Distilled       & 0.4035 & 0.3485 & 7.93 \\
 \bottomrule
 \end{tabular}\end{table}
-
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.48\textwidth}
-\includegraphics[width=\linewidth]{kitti_input_0000000000.png}\\
-\centerline{\scriptsize RGB input}
-\end{column}
-\begin{column}{0.48\textwidth}
-\includegraphics[width=\linewidth]{kitti_depth_0000000000.png}\\
-\centerline{\scriptsize Predicted depth}
-\end{column}
-\end{columns}
-
-\vspace{0.3em}
-\footnotesize NYU-v2 improvement does \emph{not} transfer to KITTI.
-At $\text{lr}=10^{-7}$ the encoder barely moves from its pretrained
-initialization, so cross-domain behavior is inherited from the original
-Depth Anything training mixture.
+\centering
+\includegraphics[width=0.42\textwidth]{training/kitti_per_image_scatter.png}\\[0.2em]
+\footnotesize Per-image scatter: roughly symmetric around $y=x$. The NYU-v2 improvement
+does \emph{not} transfer to KITTI -- at $\text{lr}=10^{-7}$ the encoder barely moves
+from its pretrained init, so OOD behavior is inherited unchanged.
 \end{frame}
 
 % --------------------------------------------------------------------------
