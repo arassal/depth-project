@@ -660,10 +660,11 @@ relative to native-resolution KITTI evaluations.}
 \centering
 \includegraphics[width=0.95\columnwidth]{figs/training/kitti_per_image_scatter.png}
 \caption{Per-image AbsRel on the KITTI eigen-test subset, distilled
-checkpoint vs.\ zero-shot. Points scatter symmetrically around the
+checkpoint vs.\ zero-shot. Points cluster tightly along the
 $y=x$ diagonal: the distilled checkpoint changes individual KITTI
-images by small amounts in both directions, with no systematic
-direction of improvement.}
+images by small amounts in both directions (31 improve, 69 degrade
+slightly), and the small net direction toward ``worse'' is consistent
+with the marginal degradation in mean AbsRel ($+0.001$).}
 \label{fig:kittiscatter}
 \end{figure}
 

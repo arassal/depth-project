@@ -153,18 +153,21 @@ def fig_all_runs_validation(sweep_name: str, hyperparam_label: str, output_name:
 # 3. Per-image scatter — zero-shot vs distilled on NYU-v2
 # ----------------------------------------------------------------------------
 def fig_per_image_scatter():
-    zs = pd.read_csv(METRICS / "zero_shot_nyu_per_image.csv")
-    dt = pd.read_csv(METRICS / "distill_test_per_image.csv")
-    merged = zs.merge(dt, on="sample_id", suffixes=("_zs", "_dt"))
+    zs = pd.read_csv(METRICS / "zero_shot_nyu_per_image.csv").reset_index(drop=True)
+    dt = pd.read_csv(METRICS / "distill_test_per_image.csv").reset_index(drop=True)
+    # Pair by row position — sample_id may not be unique on some datasets.
+    assert len(zs) == len(dt), f"row-count mismatch: zs={len(zs)} dt={len(dt)}"
+    zs_ar = zs["abs_rel"].to_numpy()
+    dt_ar = dt["abs_rel"].to_numpy()
 
     fig, ax = plt.subplots(figsize=(5.6, 5.6))
-    improved = merged["abs_rel_dt"] < merged["abs_rel_zs"]
-    ax.scatter(merged.loc[improved, "abs_rel_zs"], merged.loc[improved, "abs_rel_dt"],
-               color=GOOD, s=22, alpha=0.85, label=f"distilled better ({improved.sum()})")
-    ax.scatter(merged.loc[~improved, "abs_rel_zs"], merged.loc[~improved, "abs_rel_dt"],
-               color=BAD, s=22, alpha=0.85, label=f"distilled worse ({(~improved).sum()})")
+    improved = dt_ar < zs_ar
+    ax.scatter(zs_ar[improved], dt_ar[improved],
+               color=GOOD, s=22, alpha=0.85, label=f"distilled better ({int(improved.sum())})")
+    ax.scatter(zs_ar[~improved], dt_ar[~improved],
+               color=BAD, s=22, alpha=0.85, label=f"distilled worse ({int((~improved).sum())})")
     lim_min = 0.0
-    lim_max = max(merged["abs_rel_zs"].max(), merged["abs_rel_dt"].max()) * 1.05
+    lim_max = max(zs_ar.max(), dt_ar.max()) * 1.05
     ax.plot([lim_min, lim_max], [lim_min, lim_max], color="black", linestyle=":", linewidth=1.0,
             label="y = x (no change)")
     ax.set_xlim(lim_min, lim_max)
@@ -303,23 +306,29 @@ def fig_sweep_panel():
 # 8. KITTI per-image scatter
 # ----------------------------------------------------------------------------
 def fig_kitti_scatter():
-    zs = pd.read_csv(METRICS / "kitti_zero_shot_per_image.csv")
-    dt = pd.read_csv(METRICS / "kitti_distill_per_image.csv")
-    merged = zs.merge(dt, on="sample_id", suffixes=("_zs", "_dt"))
+    # NOTE: KITTI per-image CSVs have non-unique sample_id (filename stem repeats
+    # across drive sequences). Pair by row position instead of merging on sample_id,
+    # since both CSVs are written by the same DataLoader pass in the same order.
+    zs = pd.read_csv(METRICS / "kitti_zero_shot_per_image.csv").reset_index(drop=True)
+    dt = pd.read_csv(METRICS / "kitti_distill_per_image.csv").reset_index(drop=True)
+    assert len(zs) == len(dt), f"row-count mismatch: zs={len(zs)} dt={len(dt)}"
+    zs_ar = zs["abs_rel"].to_numpy()
+    dt_ar = dt["abs_rel"].to_numpy()
+
     fig, ax = plt.subplots(figsize=(5.6, 5.6))
-    improved = merged["abs_rel_dt"] < merged["abs_rel_zs"]
-    ax.scatter(merged.loc[improved, "abs_rel_zs"], merged.loc[improved, "abs_rel_dt"],
-               color=GOOD, s=22, alpha=0.85, label=f"distilled better ({improved.sum()})")
-    ax.scatter(merged.loc[~improved, "abs_rel_zs"], merged.loc[~improved, "abs_rel_dt"],
-               color=BAD, s=22, alpha=0.85, label=f"distilled worse ({(~improved).sum()})")
-    lim_max = max(merged["abs_rel_zs"].max(), merged["abs_rel_dt"].max()) * 1.05
+    improved = dt_ar < zs_ar
+    ax.scatter(zs_ar[improved], dt_ar[improved],
+               color=GOOD, s=22, alpha=0.85, label=f"distilled better ({int(improved.sum())})")
+    ax.scatter(zs_ar[~improved], dt_ar[~improved],
+               color=BAD, s=22, alpha=0.85, label=f"distilled worse ({int((~improved).sum())})")
+    lim_max = max(zs_ar.max(), dt_ar.max()) * 1.05
     ax.plot([0, lim_max], [0, lim_max], color="black", linestyle=":", linewidth=1.0,
             label="y = x")
     ax.set_xlim(0, lim_max)
     ax.set_ylim(0, lim_max)
     ax.set_xlabel("Zero-shot AbsRel")
     ax.set_ylabel("Distilled AbsRel")
-    ax.set_title("Per-image AbsRel — KITTI eigen-test  (100 images)")
+    ax.set_title(f"Per-image AbsRel — KITTI eigen-test  ({len(zs)} images)")
     ax.legend(loc="upper left", frameon=False)
     save(fig, "kitti_per_image_scatter.png")
 
@@ -398,12 +407,17 @@ def fig_loss_vs_val():
         ax.scatter(sub["train_loss"], sub["val_abs_rel"], color=color, s=60,
                    label=sweep_name.replace("_at_alpha07", " (lr at $\\alpha=0.7$)"),
                    edgecolor="white", linewidth=1)
-    # Annotate the headline point — best stable run
+    # Annotate the headline point — best stable run (lowest val AbsRel)
     best_idx = df["val_abs_rel"].idxmin()
-    ax.annotate(f"best stable\n(lr={df.loc[best_idx, 'lr']:.0e})",
-                xy=(df.loc[best_idx, "train_loss"], df.loc[best_idx, "val_abs_rel"]),
-                xytext=(df.loc[best_idx, "train_loss"] + 0.05,
-                        df.loc[best_idx, "val_abs_rel"] - 0.05),
+    best = df.loc[best_idx]
+    sweep_label = {
+        "alpha": "alpha sweep",
+        "lr_at_alpha07": "lr sweep",
+        "beta": "beta sweep",
+    }.get(best["sweep"], best["sweep"])
+    ax.annotate(f"best stable run\n({sweep_label}, lr={best['lr']:.0e})",
+                xy=(best["train_loss"], best["val_abs_rel"]),
+                xytext=(best["train_loss"] + 0.05, best["val_abs_rel"] - 0.05),
                 fontsize=8, ha="left",
                 arrowprops=dict(arrowstyle="->", color=MUTED, lw=0.8))
     ax.set_xlabel("Final epoch train loss")

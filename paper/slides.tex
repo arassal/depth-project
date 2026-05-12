@@ -385,9 +385,9 @@ Distilled       & 0.4035 & 0.3485 & 7.93 \\
 \end{tabular}\end{table}
 \centering
 \includegraphics[width=0.42\textwidth]{training/kitti_per_image_scatter.png}\\[0.2em]
-\footnotesize Per-image scatter: roughly symmetric around $y=x$. The NYU-v2 improvement
-does \emph{not} transfer to KITTI -- at $\text{lr}=10^{-7}$ the encoder barely moves
-from its pretrained init, so OOD behavior is inherited unchanged.
+\footnotesize Per-image scatter: 31 images improve, 69 degrade slightly -- all tightly
+along $y=x$. The NYU-v2 improvement does \emph{not} transfer to KITTI; at $\text{lr}=10^{-7}$
+the encoder barely moves from its pretrained init, so OOD behavior is inherited unchanged.
 \end{frame}
 
 % --------------------------------------------------------------------------
