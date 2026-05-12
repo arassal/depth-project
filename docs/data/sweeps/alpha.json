@@ -1,0 +1,97 @@
+[
+  {
+    "run_idx": 0,
+    "config_overrides": {
+      "alpha": 0.0
+    },
+    "derived_config": "outputs/sweeps/alpha/configs/run_0.yaml",
+    "metrics_path": "outputs/sweeps/alpha/run_0/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.29483159050597985,
+      "rmse": 0.8869537882885691,
+      "rmse_log": 0.3121959266521163,
+      "log10": 0.1102454662322998,
+      "delta1": 0.5715450998079978,
+      "delta2": 0.8321284924523306,
+      "delta3": 0.9350583351264565,
+      "num_samples": 59
+    }
+  },
+  {
+    "run_idx": 1,
+    "config_overrides": {
+      "alpha": 0.3
+    },
+    "derived_config": "outputs/sweeps/alpha/configs/run_1.yaml",
+    "metrics_path": "outputs/sweeps/alpha/run_1/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.2684811919422473,
+      "rmse": 0.8430458942459802,
+      "rmse_log": 0.30749817053645345,
+      "log10": 0.10415950373320257,
+      "delta1": 0.6033601922503973,
+      "delta2": 0.8503839525125795,
+      "delta3": 0.9422509144928496,
+      "num_samples": 59
+    }
+  },
+  {
+    "run_idx": 2,
+    "config_overrides": {
+      "alpha": 0.5
+    },
+    "derived_config": "outputs/sweeps/alpha/configs/run_2.yaml",
+    "metrics_path": "outputs/sweeps/alpha/run_2/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.2723057849679963,
+      "rmse": 0.8814243060552468,
+      "rmse_log": 0.29323278563254973,
+      "log10": 0.10066230448310153,
+      "delta1": 0.6432996846861758,
+      "delta2": 0.8526469085176113,
+      "delta3": 0.9310116525423728,
+      "num_samples": 59
+    }
+  },
+  {
+    "run_idx": 3,
+    "config_overrides": {
+      "alpha": 0.7
+    },
+    "derived_config": "outputs/sweeps/alpha/configs/run_3.yaml",
+    "metrics_path": "outputs/sweeps/alpha/run_3/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.20181159915055258,
+      "rmse": 0.6666788732853987,
+      "rmse_log": 0.5145126610868058,
+      "log10": 0.10363596800904153,
+      "delta1": 0.722286418332892,
+      "delta2": 0.89785352803893,
+      "delta3": 0.9599239543332891,
+      "num_samples": 59
+    }
+  },
+  {
+    "run_idx": 4,
+    "config_overrides": {
+      "alpha": 1.0
+    },
+    "derived_config": "outputs/sweeps/alpha/configs/run_4.yaml",
+    "metrics_path": "outputs/sweeps/alpha/run_4/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.2656892450305365,
+      "rmse": 0.8299074827109353,
+      "rmse_log": 0.4354080431542154,
+      "log10": 0.11191583715252958,
+      "delta1": 0.6308624784825212,
+      "delta2": 0.8554162494206833,
+      "delta3": 0.9376916400456833,
+      "num_samples": 59
+    }
+  }
+]

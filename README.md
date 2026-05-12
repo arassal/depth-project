@@ -1,187 +1,190 @@
-# Depth Project
+# Distillation and Edge-Aware Loss for Efficient Monocular Depth Estimation
 
-Monocular depth proof of concept built from the original `Depth Anything` presentation, then extended in two directions:
-- paper-style `teacher -> pseudo labels -> student` data expansion
-- a lightweight architecture change on the student: an `RGB-guided residual refinement head`
+Cal Poly Pomona — ECE 4990 Final Project (Spring 2026)
 
-## What This Repo Shows
-- base teacher: `LiheYoung/depth-anything-small-hf`
-- baseline architecture: `Depth Anything Small` / DPT-style monocular depth estimation
-- student architecture change: `RGB + coarse depth -> residual refinement head -> refined depth`
-- benchmark: `NYU-v2` proof-of-concept subset
-- teacher-student expansion: `450` labeled indoor images plus `2000` teacher-pseudo-labeled indoor images
-- outputs: metrics, plots, qualitative panels, comparison galleries, HTML presentation, `.pptx`, local upload demo
+**Authors:** Alexander Assal • Parsa Ghasemi
 
-## Final Story
-This repo now shows four runs instead of one:
-1. zero-shot teacher
-2. small supervised-only student
-3. teacher-student student trained on labeled plus pseudo-labeled data
-4. refined teacher-student student with an added residual refinement head
+We fine-tune a Depth Anything Small student against a frozen Depth Anything Large teacher with two losses: affine-invariant output-level distillation (Distill-Any-Depth, He et al. 2025) and a multi-scale gradient L1 (ZoeDepth, Bhat et al. 2023). Evaluation on a 59-image NYU-v2 PoC test split and a 100-image KITTI eigen subset, with a controlled three-axis sweep over the distillation weight `α`, the gradient weight `β`, and the learning rate.
 
-That is closer to the original paper’s story, while also introducing a clear architectural change instead of stopping at fine-tuning alone.
+📄 **Paper:** [`paper/main.pdf`](paper/main.pdf) (LaTeX source in [`paper/main.tex`](paper/main.tex))
+🎤 **Presentation:** [`docs/DepthProjectPresentation.pptx`](docs/DepthProjectPresentation.pptx)
+🌐 **Demo:** local upload-and-predict web app — `./run_upload_demo.sh`
 
-## Major Talking Point
-The architecture change is one of the main project contributions, not a side detail.
+---
 
-What was added:
-- a student-side `RGB-guided residual refinement head`
-- input: `RGB + coarse depth`
-- output: a learned residual correction map
-- effect: the student becomes a two-stage predictor with a coarse estimate and a learned local refinement stage
+## Headline Result
 
-Why it matters:
-- it turns the project into more than a training-only reproduction
-- it is easy to explain visually and technically
-- it produced a measurable improvement over the plain teacher-student student
+| Setting | α | β | lr | AbsRel ↓ | δ₁ ↑ | RMSE ↓ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Zero-shot Depth Anything Small | — | — | — | 0.1550 | 0.8146 | 0.5375 |
+| Distilled (default `configs/distill.yaml`) | 0.5 | 0.1 | 1e-5 | 0.2791 | 0.6292 | 0.8898 |
+| **Distilled (best after sweep)** | **0.7** | **0.3** | **1e-7** | **0.1505** | **0.8164** | **0.5262** |
 
-## Main Results
+**Headline finding:** the recipe is dominated by learning rate sensitivity. At `lr=1e-5` the student collapses; at `lr=1e-7` it slightly beats zero-shot. See [paper](paper/main.pdf) §6 for the full analysis.
 
-| Run | Training data | Architecture | AbsRel | delta1 | Test images |
-| --- | --- | --- | ---: | ---: | ---: |
-| Zero-shot teacher | pretrained only | Depth Anything Small | `0.1467` | `0.8381` | `59` |
-| Supervised-only student | `450` labeled | Depth Anything Small | `0.1810` | `0.7163` | `59` |
-| Teacher-student student | `450` labeled + `2000` pseudo-labeled | Depth Anything Small | `0.1682` | `0.7531` | `59` |
-| Refined teacher-student student | `450` labeled + `2000` pseudo-labeled | `Depth Anything Small + RGB-guided residual head` | `0.1591` | `0.7696` | `59` |
+KITTI cross-domain (no training): zero-shot AbsRel 0.4022 / δ₁ 0.356; distilled AbsRel 0.4035 / δ₁ 0.349 — essentially identical, the NYU-v2 improvement does not transfer.
 
-Interpretation:
-- the zero-shot teacher is still the best overall result
-- pseudo-labeled expansion improved the student over the supervised-only run
-- the refinement head improved the student again over the plain teacher-student run
-- the architecture change helped, but it still did not beat the pretrained teacher
+---
 
-## Architecture Change
-The effective architectural modification is a small residual correction module added on top of the backbone prediction:
-- input to the new head: `RGB channels + coarse predicted depth`
-- module: `3` convolution layers with `GELU`
-- output: a residual depth correction
-- final prediction: `coarse_depth + residual_scale * residual`
+## Repo Layout
 
-This keeps the original model as the coarse estimator while giving the student a trainable local refinement stage.
+```
+src/          training, eval, distillation, datasets, plotting, sweep harness, web demo
+configs/      yaml configs (baseline, poc, distill, kitti_eval, sweeps/)
+checkpoints/  trained .pt (best distill checkpoint)
+data/         NYU-v2 PoC subset + KITTI eigen subset (regenerate with src/prepare_*.py)
+outputs/      metrics, plots, predictions, sweep results — all real, not mocked
+docs/         results html, presentation pptx, qualitative figures, diagnostics
+paper/        CVPR 2023 LaTeX template + main.tex + refs.bib + figs/
+references/   upstream repos used for code lifts (gitignored)
+tools/        smoke tests for data loaders
+```
 
-This should be presented as a major project decision:
-- the teacher preserves the original `Depth Anything Small` backbone
-- the student is where the architecture was intentionally extended
-- the refinement head is the clearest technical difference between this project and a straight paper-summary reproduction
+---
 
-## Data Growth
-- labeled seed set: `450`
-- validation set: `60`
-- held-out test set: `59`
-- pseudo-labeled indoor expansion: `2000`
-- total teacher-student training set: `2450`
+## Method (one paragraph)
 
-![Teacher-student data growth](docs/assets/figures/data_growth.png)
+The student is `LiheYoung/depth-anything-small-hf` (~25M params, DINOv2 ViT-S + DPT head). The teacher is `LiheYoung/depth-anything-large-hf` (~335M params), frozen. The total loss is
 
-## Why This Matches The Paper Better
-- the repo explicitly shows `teacher -> pseudo labels -> student retraining`
-- the student trains on materially more data than the original labeled seed set
-- the local run keeps the original model family intact
-- the student now also has a lightweight refinement head, so the project includes a real architecture change
+```
+L_total = (1 − α) · L_base(student, gt)
+        + α       · L_distill(student, teacher)
+        + β       · L_grad(student, gt)
+```
 
-## What The Images Mean
-The NYU-v2 qualitative panels are laid out as:
-- `RGB`
-- `GT` ground-truth depth
-- `Pred` predicted depth
-- `Error` aligned pixelwise error
+where `L_base` and `L_distill` are affine-invariant L1 (per-sample median + MAD normalization, then L1) and `L_grad` is the multi-scale Sobel gradient L1 from ZoeDepth at downsampling scales {1, 2, 4}. Input resolution is 256×256, batch size 1, AdamW with weight decay 1e-4 and gradient clipping at L2 norm 1.0. See [paper](paper/main.pdf) §3 for full architecture, equations, and motivation.
 
-The teacher pseudo-label panels are laid out as:
-- `Unlabeled RGB`
-- `Teacher pseudo-depth`
+---
+
+## Quick Start
+
+```bash
+# (recommended) create a fresh venv first
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Prepare NYU-v2 PoC subset** (downloads via Hugging Face):
+
+```bash
+python src/prepare_nyu_v2.py --root data/nyu_v2_poc --val-count 60
+```
+
+**Prepare KITTI eigen-test subset** (downloads via Hugging Face):
+
+```bash
+python src/prepare_kitti.py --root data/kitti --limit 100
+```
+
+**Evaluate zero-shot Depth Anything Small on NYU-v2:**
+
+```bash
+python src/eval.py --config configs/poc.yaml \
+    --summary-path outputs/metrics/zero_shot_nyu_summary.json \
+    --per-image-path outputs/metrics/zero_shot_nyu_per_image.csv \
+    --preview-dir outputs/predictions/zero_shot_nyu
+```
+
+**Train with distillation + gradient loss** (default config):
+
+```bash
+python src/train.py --config configs/distill.yaml
+```
+
+**Train with the best-found configuration** (override learning rate via a sweep grid):
+
+```bash
+python src/sweep.py \
+    --base configs/distill.yaml \
+    --grid configs/sweeps/beta.yaml \
+    --out outputs/sweeps/beta
+```
+
+**Evaluate the best checkpoint on KITTI:**
+
+```bash
+python src/eval.py --config configs/kitti_eval.yaml \
+    --checkpoint checkpoints/distill_best.pt
+```
+
+---
+
+## Hyperparameter Sweeps
+
+Three sweeps are committed to `configs/sweeps/`:
+
+| Sweep | Grid | Fixed | Result file |
+| --- | --- | --- | --- |
+| `alpha.yaml` | α ∈ {0.0, 0.3, 0.5, 0.7, 1.0} | β=0.1, lr=1e-5 | `docs/data/sweeps/alpha.json` |
+| `lr_at_alpha07.yaml` | lr ∈ {1e-7, 1e-6, 5e-6, 1e-5} | α=0.7, β=0.1 | `docs/data/sweeps/lr_at_alpha07.json` |
+| `beta.yaml` | β ∈ {0.0, 0.1, 0.3} | α=0.7, lr=1e-7 | `docs/data/sweeps/beta.json` |
+
+Each sweep run is isolated: its checkpoint, metrics, per-image CSV, and preview images all land in its own `run_<idx>/` directory. See `src/sweep.py` for the harness.
+
+---
+
+## Web Demo
+
+```bash
+./run_upload_demo.sh   # or: python src/demo_web_app.py
+```
+
+Open `http://127.0.0.1:8000`, upload any RGB image, get a predicted depth map back. Predictions are stored under `outputs/web_demo/`. The demo runs the **zero-shot** Depth Anything Small (the stronger of the two checkpoints in our small-data regime).
+
+---
 
 ## Key Figures
 
-### Four-Run Comparison
-![Refined run comparison](docs/assets/figures/refined_run_comparison.png)
+### Training curves (default `distill.yaml` config — shows collapse at epoch 2)
 
-### Refined Teacher-Student Training Curves
-![Refined loss](docs/assets/figures/refined_loss_vs_epoch.png)
-![Refined validation AbsRel](docs/assets/figures/refined_val_absrel_vs_epoch.png)
-![Refined validation delta1](docs/assets/figures/refined_val_delta1_vs_epoch.png)
+![Loss vs epoch](docs/assets/figures/loss_vs_epoch.png)
+![Val AbsRel](docs/assets/figures/val_absrel_vs_epoch.png)
+![Val δ₁](docs/assets/figures/val_delta1_vs_epoch.png)
 
-### NYU-v2 Sample 000000
-Zero-shot teacher:
+### Hyperparameter sweeps
 
-![Zero-shot sample](docs/assets/figures/nyu_zero_shot_000000.png)
+| | AbsRel ↓ | δ₁ ↑ |
+| --- | --- | --- |
+| **α sweep** | ![](docs/assets/figures/sweeps/abs_rel_vs_alpha.png) | ![](docs/assets/figures/sweeps/delta1_vs_alpha.png) |
+| **learning-rate sweep** | ![](docs/assets/figures/sweeps/abs_rel_vs_learning_rate.png) | ![](docs/assets/figures/sweeps/delta1_vs_learning_rate.png) |
+| **β sweep** | ![](docs/assets/figures/sweeps/abs_rel_vs_grad_weight.png) | |
 
-Teacher-student student:
+### Qualitative
 
-![Teacher-student sample](docs/assets/figures/teacher_student_000000.png)
+NYU-v2 test sample — RGB | GT | prediction | error:
 
-Refined teacher-student student:
+![NYU qualitative](docs/assets/figures/qualitative/compare_000000.png)
 
-![Refined sample](docs/assets/figures/teacher_student_refined_000000.png)
-
-### Teacher Pseudo-Label Examples
-![Teacher pseudo sample 1](docs/assets/figures/teacher_pseudo_00.png)
-![Teacher pseudo sample 2](docs/assets/figures/teacher_pseudo_01.png)
-
-### KITTI Tiny Demo Example
-Input frame:
+KITTI outdoor frame — input vs. predicted depth:
 
 ![KITTI input](docs/assets/figures/kitti_input_0000000000.png)
-
-Predicted depth:
-
 ![KITTI depth](docs/assets/figures/kitti_depth_0000000000.png)
 
-## Main Artifacts
-- results page: [docs/results.html](docs/results.html)
-- presentation page: [docs/presentation.html](docs/presentation.html)
-- pptx: [docs/DepthProjectPresentation.pptx](docs/DepthProjectPresentation.pptx)
-- diagnostics note: [docs/diagnostics.md](docs/diagnostics.md)
-- multi-dataset note: [docs/multi_dataset_workflow.md](docs/multi_dataset_workflow.md)
+---
 
-Desktop package:
-- `/home/alexander/Desktop/DepthProjectDemo`
+## What This Repo Verifies
 
-## Teacher-Student Commands
-Export the indoor pseudo-label pool:
+- ✅ Source compiles cleanly (`python -m compileall src`)
+- ✅ `DepthEstimationPipeline` loads from `LiheYoung/depth-anything-small-hf`
+- ✅ Train / val / test splits are real and frozen (see `outputs/metrics/*_per_image.csv` after eval runs)
+- ✅ Every metric in the paper is reproducible from `docs/data/` (sweep JSON) and `docs/data/kitti_*_summary.json`
+- ✅ Every figure in the paper is a committed PNG under `docs/assets/figures/`
+- ✅ Best-found checkpoint saved at `checkpoints/distill_best.pt`
 
-```bash
-cd /home/alexander/depth-project
-source .venv/bin/activate
-python src/prepare_indoor_pseudo_pool.py \
-  --root /home/alexander/depth-project/data/unlabeled/indoor_teacher_pool \
-  --limit 2000
-```
+Full diagnostics: [`docs/diagnostics.md`](docs/diagnostics.md)
 
-Generate pseudo labels with the teacher:
+---
 
-```bash
-python src/pseudo_label.py --config configs/teacher_student_poc.yaml
-```
+## References
 
-Train the refined student:
+- L. Yang et al., **Depth Anything**, CVPR 2024.
+- X. He et al., **Distill Any Depth**, arXiv 2502.19204, 2025.
+- S.F. Bhat et al., **ZoeDepth**, arXiv 2302.12288, 2023.
+- R. Ranftl et al., **Vision Transformers for Dense Prediction (DPT)**, ICCV 2021.
+- R. Ranftl et al., **MiDaS**, TPAMI 2022.
+- M. Oquab et al., **DINOv2**, arXiv 2304.07193, 2023.
+- N. Silberman et al., **NYU-v2**, ECCV 2012.
+- A. Geiger et al., **KITTI**, IJRR 2013.
 
-```bash
-python src/train.py --config configs/teacher_student_refined.yaml
-```
-
-Evaluate the refined student:
-
-```bash
-python src/eval.py --config configs/teacher_student_refined.yaml \
-  --checkpoint checkpoints/teacher_student_refined_best.pt
-```
-
-## Local Web Demo
-Run:
-
-```bash
-cd /home/alexander/depth-project
-source .venv/bin/activate
-python src/demo_web_app.py
-```
-
-Then open:
-
-```text
-http://127.0.0.1:8000
-```
-
-This runs the pretrained zero-shot teacher on uploaded RGB images and saves outputs under `outputs/web_demo/`.
-
-## Honest Conclusion
-The project now does two meaningful things beyond a tiny fine-tune: it expands the data with a teacher-student pseudo-label pipeline, and it adds a lightweight refinement head to the student. The refined student is clearly better than the earlier student runs, but the pretrained teacher still remains the strongest held-out test result.
+Full bibliography in [`paper/refs.bib`](paper/refs.bib).

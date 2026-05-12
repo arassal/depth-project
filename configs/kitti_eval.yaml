@@ -1,0 +1,27 @@
+# KITTI quantitative evaluation config.
+# Data sourced from `exander/kitti-depth-gt` on HuggingFace: RGB images
+# from the eigen-test split + per-image .npy depth maps (float32 meters).
+# Eval runs at 256x256 to match the NYU-v2 setup; metrics are not directly
+# comparable to native-resolution KITTI leaderboard numbers but ARE
+# internally consistent across zero-shot vs distilled checkpoints.
+run_name: kitti_eval
+seed: 42
+
+model:
+  pretrained_name: LiheYoung/depth-anything-small-hf
+  image_size: 256
+  image_mean: [0.485, 0.456, 0.406]
+  image_std: [0.229, 0.224, 0.225]
+
+data:
+  root: data/kitti
+  test_split: splits/test.txt
+  min_depth: 0.001
+  max_depth: 80.0
+
+eval:
+  checkpoint: null
+  summary_path: outputs/metrics/kitti_test_summary.json
+  per_image_path: outputs/metrics/kitti_test_per_image.csv
+  preview_dir: outputs/predictions/kitti_test
+  num_preview_samples: 8

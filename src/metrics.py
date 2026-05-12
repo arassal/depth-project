@@ -61,3 +61,98 @@ def delta1(pred: torch.Tensor, target: torch.Tensor, valid_mask: torch.Tensor, e
         return pred.new_tensor(float("nan"))
     ratios = torch.maximum(pred_values / target_values, target_values / pred_values)
     return (ratios < 1.25).float().mean()
+
+
+# Adapted from references/ZoeDepth/zoedepth/trainers/loss.py (Bhat et al., ZoeDepth)
+def _grad(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    diff_x = x[..., 1:, 1:] - x[..., 1:, :-1]
+    diff_y = x[..., 1:, 1:] - x[..., :-1, 1:]
+    mag = diff_x ** 2 + diff_y ** 2
+    angle = torch.atan(diff_y / (diff_x + 1e-10))
+    return mag, angle
+
+
+def _grad_mask(mask: torch.Tensor) -> torch.Tensor:
+    return mask[..., 1:, 1:] & mask[..., 1:, :-1] & mask[..., :-1, 1:]
+
+
+# Adapted from references/ZoeDepth/zoedepth/trainers/loss.py (Bhat et al., ZoeDepth)
+def grad_l1_loss(pred: torch.Tensor, target: torch.Tensor, valid_mask: torch.Tensor) -> torch.Tensor:
+    losses = []
+    for scale in (1, 2, 4):
+        if scale == 1:
+            p, t, m = pred, target, valid_mask
+        else:
+            p = pred[..., ::scale, ::scale]
+            t = target[..., ::scale, ::scale]
+            m = valid_mask[..., ::scale, ::scale]
+        if m.sum() == 0 or p.shape[-1] < 2 or p.shape[-2] < 2:
+            continue
+        grad_pred = _grad(p)
+        grad_gt = _grad(t)
+        mask_g = _grad_mask(m)
+        if mask_g.sum() == 0:
+            continue
+        loss = (grad_pred[0][mask_g] - grad_gt[0][mask_g]).abs().mean()
+        loss = loss + (grad_pred[1][mask_g] - grad_gt[1][mask_g]).abs().mean()
+        losses.append(loss)
+    if not losses:
+        return pred.new_tensor(0.0)
+    return torch.stack(losses).mean()
+
+
+# Adapted from references/bts/pytorch/bts.py (Lee et al., BTS) — silog_loss
+def silog_loss(pred: torch.Tensor, target: torch.Tensor, valid_mask: torch.Tensor, lambda_var: float = 0.85, eps: float = 1e-7) -> torch.Tensor:
+    pred_values = pred[valid_mask].clamp_min(eps)
+    target_values = target[valid_mask].clamp_min(eps)
+    if pred_values.numel() == 0:
+        return pred.new_tensor(0.0)
+    g = torch.log(pred_values) - torch.log(target_values)
+    return torch.sqrt((g ** 2).mean() - lambda_var * (g.mean() ** 2)) * 10.0
+
+
+# Adapted from references/ZoeDepth/zoedepth/utils/misc.py (compute_errors)
+def rmse(pred: torch.Tensor, target: torch.Tensor, valid_mask: torch.Tensor) -> torch.Tensor:
+    diff = pred[valid_mask] - target[valid_mask]
+    if diff.numel() == 0:
+        return pred.new_tensor(float("nan"))
+    return torch.sqrt((diff ** 2).mean())
+
+
+# Adapted from references/ZoeDepth/zoedepth/utils/misc.py (compute_errors)
+def rmse_log(pred: torch.Tensor, target: torch.Tensor, valid_mask: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
+    pred_values = pred[valid_mask].clamp_min(eps)
+    target_values = target[valid_mask].clamp_min(eps)
+    if pred_values.numel() == 0:
+        return pred.new_tensor(float("nan"))
+    diff = torch.log(pred_values) - torch.log(target_values)
+    return torch.sqrt((diff ** 2).mean())
+
+
+# Adapted from references/ZoeDepth/zoedepth/utils/misc.py (compute_errors)
+def log10(pred: torch.Tensor, target: torch.Tensor, valid_mask: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
+    pred_values = pred[valid_mask].clamp_min(eps)
+    target_values = target[valid_mask].clamp_min(eps)
+    if pred_values.numel() == 0:
+        return pred.new_tensor(float("nan"))
+    return (torch.log10(pred_values) - torch.log10(target_values)).abs().mean()
+
+
+# Adapted from references/ZoeDepth/zoedepth/utils/misc.py (compute_errors)
+def delta2(pred: torch.Tensor, target: torch.Tensor, valid_mask: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
+    pred_values = pred[valid_mask].clamp_min(eps)
+    target_values = target[valid_mask].clamp_min(eps)
+    if pred_values.numel() == 0:
+        return pred.new_tensor(float("nan"))
+    ratios = torch.maximum(pred_values / target_values, target_values / pred_values)
+    return (ratios < 1.25 ** 2).float().mean()
+
+
+# Adapted from references/ZoeDepth/zoedepth/utils/misc.py (compute_errors)
+def delta3(pred: torch.Tensor, target: torch.Tensor, valid_mask: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
+    pred_values = pred[valid_mask].clamp_min(eps)
+    target_values = target[valid_mask].clamp_min(eps)
+    if pred_values.numel() == 0:
+        return pred.new_tensor(float("nan"))
+    ratios = torch.maximum(pred_values / target_values, target_values / pred_values)
+    return (ratios < 1.25 ** 3).float().mean()

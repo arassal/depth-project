@@ -1,0 +1,8 @@
+sweep:
+  grad_weight: [0.0, 0.1, 0.3]
+  alpha: [0.7]
+  learning_rate: [1.0e-7]
+keys:
+  grad_weight: "loss.grad_weight"
+  alpha: "distillation.alpha"
+  learning_rate: "train.learning_rate"

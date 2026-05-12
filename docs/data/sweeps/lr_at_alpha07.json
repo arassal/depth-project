@@ -1,0 +1,82 @@
+[
+  {
+    "run_idx": 0,
+    "config_overrides": {
+      "learning_rate": 1e-07,
+      "alpha": 0.7
+    },
+    "derived_config": "outputs/sweeps/lr_at_alpha07/configs/run_0.yaml",
+    "metrics_path": "outputs/sweeps/lr_at_alpha07/run_0/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.15118647246795186,
+      "rmse": 0.5309837548283197,
+      "rmse_log": 0.668699785340893,
+      "log10": 0.10427161151448548,
+      "delta1": 0.8150539074913931,
+      "delta2": 0.9330382266287076,
+      "delta3": 0.9664798025357522,
+      "num_samples": 59
+    }
+  },
+  {
+    "run_idx": 1,
+    "config_overrides": {
+      "learning_rate": 1e-06,
+      "alpha": 0.7
+    },
+    "derived_config": "outputs/sweeps/lr_at_alpha07/configs/run_1.yaml",
+    "metrics_path": "outputs/sweeps/lr_at_alpha07/run_1/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.151306510382032,
+      "rmse": 0.521764790607711,
+      "rmse_log": 0.6855979493298268,
+      "log10": 0.10561384287489167,
+      "delta1": 0.8113108489472988,
+      "delta2": 0.9339829784328655,
+      "delta3": 0.9671917931508209,
+      "num_samples": 59
+    }
+  },
+  {
+    "run_idx": 2,
+    "config_overrides": {
+      "learning_rate": 5e-06,
+      "alpha": 0.7
+    },
+    "derived_config": "outputs/sweeps/lr_at_alpha07/configs/run_2.yaml",
+    "metrics_path": "outputs/sweeps/lr_at_alpha07/run_2/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.17355312735347425,
+      "rmse": 0.5973110094161357,
+      "rmse_log": 0.622547473379616,
+      "log10": 0.10311765552072202,
+      "delta1": 0.7645250740697829,
+      "delta2": 0.9225197484937765,
+      "delta3": 0.9670099807997882,
+      "num_samples": 59
+    }
+  },
+  {
+    "run_idx": 3,
+    "config_overrides": {
+      "learning_rate": 1e-05,
+      "alpha": 0.7
+    },
+    "derived_config": "outputs/sweeps/lr_at_alpha07/configs/run_3.yaml",
+    "metrics_path": "outputs/sweeps/lr_at_alpha07/run_3/artifacts/metrics.json",
+    "status": "ok",
+    "metrics": {
+      "abs_rel": 0.18620477771481214,
+      "rmse": 0.6309246198605682,
+      "rmse_log": 0.5742893763896773,
+      "log10": 0.10401037925759614,
+      "delta1": 0.7488501597259004,
+      "delta2": 0.9072749251026219,
+      "delta3": 0.9638858083951272,
+      "num_samples": 59
+    }
+  }
+]

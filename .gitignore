@@ -2,8 +2,21 @@
 __pycache__/
 *.pyc
 
-data/
-checkpoints/
-outputs/
+/data/
+/checkpoints/
+/outputs/
 
 .DS_Store
+references/
+.claude/
+
+# LaTeX build artifacts
+paper/main.aux
+paper/main.bbl
+paper/main.blg
+paper/main.brf
+paper/main.log
+paper/main.out
+paper/*.synctex.gz
+paper/*.fdb_latexmk
+paper/*.fls

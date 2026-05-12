@@ -18,14 +18,18 @@ class SampleRecord:
     is_pseudo: bool = False
 
 
-def _load_depth(path: Path) -> np.ndarray:
+def _load_depth(path: Path, depth_scale: float | None = None) -> np.ndarray:
     if path.suffix.lower() == ".npy":
         depth = np.load(path)
     else:
         depth = np.array(Image.open(path), dtype=np.float32)
         if depth.ndim == 3:
             depth = depth[..., 0]
-        if path.suffix.lower() in {".png", ".tif", ".tiff"} and depth.max() > 255:
+        if depth_scale is not None:
+            # Explicit scale path (e.g. KITTI uses /256.0 for meters).
+            depth = depth / float(depth_scale)
+        elif path.suffix.lower() in {".png", ".tif", ".tiff"} and depth.max() > 255:
+            # Legacy NYU heuristic: 16-bit PNG in millimetres.
             depth = depth / 1000.0
     return depth.astype(np.float32)
 
@@ -51,6 +55,7 @@ class DepthDataset(Dataset):
         image_std: tuple[float, float, float] = (0.229, 0.224, 0.225),
         has_depth: bool = True,
         is_pseudo: bool = False,
+        depth_scale: float | None = None,
     ) -> None:
         self.root = Path(root)
         self.image_size = image_size
@@ -59,6 +64,7 @@ class DepthDataset(Dataset):
         self.image_mean = torch.tensor(image_mean, dtype=torch.float32).view(3, 1, 1)
         self.image_std = torch.tensor(image_std, dtype=torch.float32).view(3, 1, 1)
         self.has_depth = has_depth
+        self.depth_scale = depth_scale
         self.records = self._load_records(split_file, is_pseudo=is_pseudo)
 
     def _load_records(self, split_file: str | Path, is_pseudo: bool) -> list[SampleRecord]:
@@ -108,7 +114,7 @@ class DepthDataset(Dataset):
         }
 
         if record.depth_path is not None:
-            depth_np = _load_depth(record.depth_path)
+            depth_np = _load_depth(record.depth_path, depth_scale=self.depth_scale)
             depth_tensor = torch.from_numpy(depth_np).unsqueeze(0)
             depth_tensor = _resize_tensor(depth_tensor, self.image_size, mode="nearest")
             depth_tensor = depth_tensor.squeeze(0)

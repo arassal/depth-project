@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from common import append_jsonl, get_device, load_config, seed_everything
 from datasets import DepthDataset
-from metrics import abs_rel, affine_invariant_l1, align_scale_and_shift, delta1
+from metrics import abs_rel, affine_invariant_l1, align_scale_and_shift, delta1, grad_l1_loss
 from modeling import forward_depth, load_model
 
 
@@ -87,16 +87,44 @@ def evaluate(model: torch.nn.Module, loader: DataLoader, device: torch.device) -
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
+    parser.add_argument("--smoke-test", action="store_true",
+                        help="Run a tiny CPU-only loop with no checkpointing (for test gates).")
+    parser.add_argument("--max-steps", type=int, default=None,
+                        help="Override epoch loop with a flat step budget.")
     args = parser.parse_args()
 
     config = load_config(args.config)
     seed_everything(config["seed"])
-    device = get_device()
+
+    # --smoke-test forces a tiny CPU run with no checkpointing
+    if args.smoke_test:
+        device = torch.device("cpu")
+        config["model"]["image_size"] = min(int(config["model"].get("image_size", 64)), 64)
+        if args.max_steps is None:
+            args.max_steps = 5
+    else:
+        device = get_device()
+
+    # Distillation hook (Distill-Any-Depth He et al. 2025)
+    distill_cfg = config.get("distillation", {}) or {}
+    distill_enabled: bool = bool(distill_cfg.get("enabled", False))
+    distill_model_id: str = distill_cfg.get("model_id", "LiheYoung/depth-anything-large-hf")
+    distill_alpha: float = float(distill_cfg.get("alpha", 0.5))
+
+    # Multi-scale gradient loss (ZoeDepth Bhat et al. 2023)
+    loss_cfg = config.get("loss", {}) or {}
+    grad_weight: float = float(loss_cfg.get("grad_weight", 0.0))
 
     _, model = load_model(config["model"])
     model.to(device)
     use_amp = device.type == "cuda"
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
+
+    # Distillation hook (Distill-Any-Depth He et al. 2025): build teacher once, freeze it
+    teacher = None
+    if distill_enabled:
+        from distill import build_teacher, teacher_predict, distillation_loss
+        teacher, _ = build_teacher(distill_model_id, device, dtype=torch.float32)
 
     train_loader = build_loader(config, "train_split", shuffle=True)
     val_loader = build_loader(config, "val_split", shuffle=False)
@@ -121,11 +149,22 @@ def main() -> None:
     best_abs_rel = float("inf")
     history_path = config["train"]["history_path"]
     save_path = Path(config["train"]["save_path"])
-    save_path.parent.mkdir(parents=True, exist_ok=True)
+    if not args.smoke_test:
+        save_path.parent.mkdir(parents=True, exist_ok=True)
 
-    for epoch in range(1, config["train"]["epochs"] + 1):
+    global_step = 0
+    max_steps = args.max_steps
+    epochs = 1 if max_steps is not None else config["train"]["epochs"]
+    stop = False
+
+    for epoch in range(1, epochs + 1):
+        if stop:
+            break
         model.train()
         running_loss = 0.0
+        running_base = 0.0
+        running_distill = 0.0
+        running_grad = 0.0
         progress = tqdm(train_loader, desc=f"epoch {epoch}", leave=False)
         for step, batch in enumerate(progress, start=1):
             pixel_values = batch["pixel_values"].to(device)
@@ -142,7 +181,28 @@ def main() -> None:
                     align_corners=False,
                 ).squeeze(1)
 
-                loss = affine_invariant_l1(pred, depth, valid_mask)
+                base = affine_invariant_l1(pred, depth, valid_mask)
+                d_val = 0.0
+                g_val = 0.0
+
+                # Distillation hook (Distill-Any-Depth He et al. 2025)
+                if distill_enabled and teacher is not None:
+                    with torch.no_grad():
+                        teacher_pred = teacher_predict(
+                            teacher, pixel_values, target_size=pred.shape[-2:]
+                        )
+                    d = distillation_loss(pred, teacher_pred, valid_mask)
+                    loss = (1.0 - distill_alpha) * base + distill_alpha * d
+                    d_val = float(d.detach().item())
+                else:
+                    loss = base
+
+                # Multi-scale gradient loss (ZoeDepth Bhat et al. 2023)
+                if grad_weight > 0.0:
+                    g = grad_l1_loss(pred, depth, valid_mask)
+                    loss = loss + grad_weight * g
+                    g_val = float(g.detach().item())
+
             pseudo_weight = config["train"].get("pseudo_weight")
             if pseudo_weight is not None and "is_pseudo" in batch:
                 batch_weights = torch.where(
@@ -159,31 +219,52 @@ def main() -> None:
             scaler.update()
 
             running_loss += loss.item()
+            running_base += float(base.detach().item())
+            running_distill += d_val
+            running_grad += g_val
+            global_step += 1
             if step % config["train"]["log_every"] == 0:
-                progress.set_postfix(loss=running_loss / step)
+                progress.set_postfix(
+                    loss=running_loss / step,
+                    base=running_base / step,
+                    distill=running_distill / step,
+                    grad=running_grad / step,
+                )
 
-        train_loss = running_loss / max(len(train_loader), 1)
-        metrics = evaluate(model, val_loader, device)
+            if max_steps is not None and global_step >= max_steps:
+                stop = True
+                break
+
+        denom = max(step if max_steps is not None else len(train_loader), 1)
+        train_loss = running_loss / denom
         record = {
             "epoch": epoch,
             "train_loss": train_loss,
-            "val_loss": metrics["loss"],
-            "val_abs_rel": metrics["abs_rel"],
-            "val_delta1": metrics["delta1"],
+            "train_base_loss": running_base / denom,
+            "train_distill_loss": running_distill / denom,
+            "train_grad_loss": running_grad / denom,
         }
-        append_jsonl(history_path, record)
 
-        if metrics["abs_rel"] < best_abs_rel:
-            best_abs_rel = metrics["abs_rel"]
-            torch.save(
-                {
-                    "model_state_dict": model.state_dict(),
-                    "config": config,
-                    "epoch": epoch,
-                    "val_abs_rel": best_abs_rel,
-                },
-                save_path,
-            )
+        if not args.smoke_test:
+            metrics = evaluate(model, val_loader, device)
+            record.update({
+                "val_loss": metrics["loss"],
+                "val_abs_rel": metrics["abs_rel"],
+                "val_delta1": metrics["delta1"],
+            })
+            append_jsonl(history_path, record)
+
+            if metrics["abs_rel"] < best_abs_rel:
+                best_abs_rel = metrics["abs_rel"]
+                torch.save(
+                    {
+                        "model_state_dict": model.state_dict(),
+                        "config": config,
+                        "epoch": epoch,
+                        "val_abs_rel": best_abs_rel,
+                    },
+                    save_path,
+                )
 
         print(record)
 

@@ -1,0 +1,4 @@
+sweep:
+  alpha: [0.0, 0.3, 0.5, 0.7, 1.0]
+keys:
+  alpha: "distillation.alpha"

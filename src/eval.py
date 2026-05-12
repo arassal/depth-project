@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from common import get_device, load_config, write_json
 from datasets import DepthDataset
-from metrics import abs_rel, align_scale_and_shift, delta1
+from metrics import abs_rel, align_scale_and_shift, delta1, delta2, delta3, log10, rmse, rmse_log
 from modeling import forward_depth, load_model
 
 
@@ -64,6 +64,7 @@ def main() -> None:
         max_depth=config["data"]["max_depth"],
         image_mean=tuple(config["model"].get("image_mean", (0.485, 0.456, 0.406))),
         image_std=tuple(config["model"].get("image_std", (0.229, 0.224, 0.225))),
+        depth_scale=config["data"].get("depth_scale"),
     )
     loader = DataLoader(dataset, batch_size=1, shuffle=False)
 
@@ -89,9 +90,16 @@ def main() -> None:
                 ).squeeze(1)
             aligned = align_scale_and_shift(pred, depth, valid_mask)
 
-            sample_abs_rel = abs_rel(aligned, depth, valid_mask).item()
-            sample_delta1 = delta1(aligned, depth, valid_mask).item()
-            rows.append({"sample_id": sample_id, "abs_rel": sample_abs_rel, "delta1": sample_delta1})
+            rows.append({
+                "sample_id": sample_id,
+                "abs_rel": abs_rel(aligned, depth, valid_mask).item(),
+                "rmse": rmse(aligned, depth, valid_mask).item(),
+                "rmse_log": rmse_log(aligned, depth, valid_mask).item(),
+                "log10": log10(aligned, depth, valid_mask).item(),
+                "delta1": delta1(aligned, depth, valid_mask).item(),
+                "delta2": delta2(aligned, depth, valid_mask).item(),
+                "delta3": delta3(aligned, depth, valid_mask).item(),
+            })
 
             if preview_limit < 0 or preview_count < preview_limit:
                 save_preview(
@@ -108,11 +116,9 @@ def main() -> None:
     per_image_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(per_image_path, index=False)
 
-    summary = {
-        "abs_rel": float(df["abs_rel"].mean()),
-        "delta1": float(df["delta1"].mean()),
-        "num_samples": int(len(df)),
-    }
+    metric_cols = ["abs_rel", "rmse", "rmse_log", "log10", "delta1", "delta2", "delta3"]
+    summary = {col: float(df[col].mean()) for col in metric_cols}
+    summary["num_samples"] = int(len(df))
     write_json(args.summary_path or config["eval"]["summary_path"], summary)
     print(summary)
 
