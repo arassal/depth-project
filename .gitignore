@@ -20,3 +20,9 @@ paper/main.out
 paper/*.synctex.gz
 paper/*.fdb_latexmk
 paper/*.fls
+paper/slides.aux
+paper/slides.log
+paper/slides.nav
+paper/slides.out
+paper/slides.snm
+paper/slides.toc
