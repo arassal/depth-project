@@ -56,14 +56,46 @@ where `L_base` and `L_distill` are affine-invariant L1 (per-sample median + MAD 
 
 ---
 
-## Quick Start
+## Quick Start (run on a fresh machine)
+
+**Requirements:** Python ≥ 3.10, ~6 GB free disk for datasets, optional CUDA GPU (4 GB VRAM is enough — the project was developed on an RTX 3050 Laptop). Everything works on CPU too, just slowly.
 
 ```bash
-# (recommended) create a fresh venv first
+# 1. Clone the repo
+git clone https://github.com/arassal/depth-project.git
+cd depth-project
+
+# 2. Create an isolated environment
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+**Smoke test** (verifies the model loads and the source compiles — no dataset needed):
+
+```bash
+python -m compileall src
+python -c "from transformers import AutoModelForDepthEstimation; \
+           AutoModelForDepthEstimation.from_pretrained('LiheYoung/depth-anything-small-hf'); \
+           print('OK: Depth Anything Small loaded successfully')"
+```
+
+**Reproduce the headline numbers** end-to-end (downloads ~5 GB):
+
+```bash
+python src/prepare_nyu_v2.py --root data/nyu_v2_poc --val-count 60   # ~3 min
+python src/prepare_kitti.py  --root data/kitti --limit 100           # ~1 min
+python src/eval.py --config configs/poc.yaml \
+    --summary-path outputs/metrics/zero_shot_nyu_summary.json \
+    --per-image-path outputs/metrics/zero_shot_nyu_per_image.csv \
+    --preview-dir outputs/predictions/zero_shot_nyu                  # ~2 min
+python src/train.py --config configs/distill.yaml                    # ~5 min (GPU)
+```
+
+Expected output: `outputs/metrics/zero_shot_nyu_summary.json` reports AbsRel ≈ 0.155 and δ₁ ≈ 0.815 — matches Table 1 in the paper.
+
+---
 
 **Prepare NYU-v2 PoC subset** (downloads via Hugging Face):
 
