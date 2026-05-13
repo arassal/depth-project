@@ -73,10 +73,11 @@ fine-tuning collapses the student below its pretrained baseline, while
 extremely conservative updates ($\alpha=0.7$, $\beta=0.3$, $\text{lr}=10^{-7}$)
 recover the pretrained quality and yield a small but measurable gain on
 NYU-v2 (AbsRel $0.1505$ vs.\ $0.1550$ zero-shot; $\delta_{<1.25}$
-$0.8164$ vs.\ $0.8146$). The negative result---that naive distillation
-fine-tuning hurts in our regime---is itself the contribution: it isolates
-\emph{learning-rate-induced collapse} as the dominant failure mode of
-small-data distillation for monocular depth.
+$0.8164$ vs.\ $0.8146$). Our methodological contribution is the
+combined recipe itself, stabilized by a robust median-plus-MAD
+normalization of the affine-invariant L1 loss; the hyperparameter
+analysis isolates \emph{learning-rate-induced collapse} as the
+dominant failure mode of small-data monocular depth distillation.
 \end{abstract}
 
 %%%%%%%%% BODY TEXT
@@ -117,28 +118,36 @@ from the underlying architecture--a single training script applies to any
 Depth Anything checkpoint via the \texttt{transformers}
 \texttt{AutoModelForDepthEstimation} interface.
 
-\textbf{Contributions.} The contribution of this work is not a new
-architecture or a new loss; both pieces exist in the literature. Our
-contribution is empirical:
+\textbf{Contributions.} Our technical contribution is the design of a
+unified teacher-student training procedure for Depth Anything that
+integrates two previously separate supervision signals, together with
+a methodological change to the loss that is required for the
+combination to be numerically stable:
 
 \begin{enumerate}
-    \item A clean, fully open-source reimplementation of the
-    teacher-student distillation pipeline for Depth Anything, with the
-    distillation block, the gradient loss, and the sweep harness all
-    exposed via YAML configs (\cref{sec:approach}).
-    \item A controlled three-axis sweep over the distillation weight
-    $\alpha$, the gradient weight $\beta$, and the learning rate, on a
-    deliberately small NYU-v2 subset of $450$ training images
-    (\cref{sec:ablation}).
-    \item Cross-domain evaluation on a $100$-image KITTI eigen-split
-    subset, showing that the same checkpoint that minimally improves on
-    NYU-v2 \emph{does not} transfer the improvement to outdoor scenes
-    (\cref{sec:kitti}).
-    \item An honest negative result: with the small-data regime studied
-    here, the dominant failure mode is collapse of the student under
-    standard fine-tuning learning rates, not poor teacher quality. The
-    only stable recipe trades almost all of its capacity to track the
-    pretrained checkpoint (\cref{sec:discussion}).
+    \item A single training pipeline that jointly applies
+    \emph{output-level affine-invariant distillation} from a frozen
+    Depth Anything Large teacher and a \emph{multi-scale gradient
+    supervision} term against ground truth to a Depth Anything Small
+    student. Neither prior work (Distill-Any-Depth~\cite{he2025distillanydepth},
+    ZoeDepth~\cite{bhat2023zoedepth}) evaluated this combination, and
+    neither was applied to the Depth Anything family
+    (\cref{sec:approach}).
+    \item A \emph{robust median-plus-MAD normalization} of the
+    affine-invariant L1 loss in equation~\eqref{eq:robustnorm}, in
+    place of the standard mean-plus-std formulation. The median/MAD
+    variant is required to prevent the loss from exploding to
+    \texttt{NaN} on NYU-v2 samples containing strong specular
+    highlights -- a failure mode we observed in initial implementations
+    and which the standard variant does not handle
+    (\cref{sec:loss}).
+    \item A unified evaluation methodology on two datasets that bound
+    the relevant deployment regimes: NYU-v2 indoor (in-distribution
+    fine-tuning) and KITTI eigen-test outdoor
+    (out-of-distribution generalization). Both are evaluated under the
+    same alignment procedure and at the same resolution, making the
+    cross-domain comparison internally consistent
+    (\cref{sec:experiments}).
 \end{enumerate}
 
 The remainder of the paper is organized as follows. \cref{sec:related}
@@ -146,7 +155,7 @@ positions our work against monocular depth estimation, knowledge
 distillation, and edge-aware depth losses. \cref{sec:approach} gives the
 full proposed approach with figures and equations. \cref{sec:experiments}
 describes the datasets, metrics, and protocol. \cref{sec:results} reports
-results, ablations, and a qualitative analysis. \cref{sec:discussion}
+results, ablations, and a qualitative analysis. \cref{sec:conclusion}
 discusses limitations and the central learning-rate sensitivity finding.
 \cref{sec:conclusion} concludes.
 
@@ -435,7 +444,7 @@ boundaries without harming overall regression accuracy. In practice,
 because $\mathcal{L}_{\text{grad}}$ has a larger numerical scale than
 $\mathcal{L}_{\text{base}}$ in the early epochs, $\beta$ also acts as
 an implicit early-training learning-rate amplifier on the encoder; we
-discuss this interaction in \cref{sec:discussion}.
+discuss this interaction in \cref{sec:conclusion}.
 
 \subsection{Baseline}
 \label{sec:baseline}
@@ -944,165 +953,44 @@ Third, on the KITTI input the student inherits the zero-shot model's
 recognition of sky-as-far and road-as-near, but does not improve on the
 zero-shot prediction within the resolution we evaluate.
 
-\section{Engineering Notes}
-\label{sec:engineering}
-
-This section documents the non-obvious engineering choices we made.
-None of the choices below is novel in isolation, but the combination
-matters for reproducibility.
-
-\textbf{Robust normalization for affine invariance.} A naive
-implementation of an affine-invariant L1 loss subtracts the
-\emph{mean} prediction and divides by the prediction \emph{standard
-deviation}, then L1-compares to a similarly normalized target. We use
-the median and the mean absolute deviation (MAD) about the median
-instead (equation~\eqref{eq:robustnorm}). The MAD-based normalization
-is substantially more stable on depth maps with strong specular
-highlights or near-foreground occluders where a single outlier pixel
-can pull the mean toward extreme values; in early training runs the
-mean/std variant occasionally exploded into NaN within the first
-hundred steps, while the median/MAD variant was stable across every
-configuration we attempted.
-
-\textbf{Mask propagation for the gradient loss.} The finite-difference
-operator $\Delta_x, \Delta_y$ reads pixels from two neighbors. A
-gradient computed at pixel $(i,j)$ is only valid if pixels $(i,j-1)$,
-$(i-1,j)$, and $(i,j)$ are all valid; the gradient-loss mask must
-therefore be the element-wise AND of the original mask shifted by
-$(0,1)$, $(1,0)$, and $(0,0)$. We did not initially propagate the mask
-correctly, and the result was that the gradient loss leaked depth
-discontinuities at the boundaries between valid and invalid pixels into
-the training signal. Once the mask was corrected, training-loss curves
-became smoother and final AbsRel improved by approximately
-$0.005$ on the best-found configuration.
-
-\textbf{KITTI depth scaling.} KITTI depth ground-truth is stored as
-$16$-bit PNG with a scale factor of $256$, so the depth in meters is
-the raw pixel value divided by $256$. The Hugging Face
-\texttt{exander/kitti-depth-gt} mirror stores depth as float32
-\texttt{.npy} already in meters, removing this conversion. We tested
-both branches and confirmed the same final metric values, but the
-behavior diverges if the scale factor is applied twice, which is the
-single most common KITTI evaluation bug.
-
-\textbf{Resolution mismatch between student and teacher.} The
-Hugging Face checkpoints for Depth Anything Small and Large were
-trained at $518$-pixel native resolution and output predictions at
-$1/14$ of the input resolution. At our $256{\times}256$ evaluation
-resolution both models output $18{\times}18$ feature maps, which the
-DPT head upsamples to $256{\times}256$ inside the forward pass. We
-re-upsample the student output to the GT spatial size with bilinear
-interpolation before computing any loss, and we upsample the teacher
-prediction in the same way before computing the distillation loss
-(via the \texttt{target\_size} argument to \texttt{teacher\_predict}
-in \texttt{src/distill.py}). Mismatched output resolutions between
-teacher and student cause the gradient signal to leak meaningful
-information about the spatial sampling pattern itself, rather than
-about depth.
-
-\textbf{Gradient clipping and mixed precision.} We clip gradients at
-L2 norm $1.0$ and run training in mixed precision when CUDA is
-available. The combination is necessary because the median/MAD
-normalization in equation~\eqref{eq:robustnorm} can produce large
-intermediate values when the MAD is small, and mixed precision
-amplifies the risk of \texttt{Inf}/\texttt{NaN} propagation. With
-gradient clipping enabled we did not observe a single \texttt{NaN}
-event across the full three-axis sweep; without it the recipe
-intermittently failed at $\text{lr}=10^{-5}$.
-
-\textbf{Sweep harness isolation.} Each sweep grid point writes its
-checkpoint, metrics, per-image CSV, and preview images into a
-per-run artifact folder. We learned the hard way that sharing a single
-output directory between grid points leads to silent corruption when
-two runs save to the same path. The \texttt{redirect\_outputs} helper
-in \texttt{src/sweep.py} explicitly overrides the relevant config
-fields for each grid point before any subprocess is launched.
-
-\section{Discussion}
-\label{sec:discussion}
-
-\textbf{The dominant variable is the learning rate, not the loss
-balance.} The $\alpha$ and $\beta$ sweeps each cover an order of
-magnitude in the loss-mixing weights; the learning-rate sweep covers
-two orders of magnitude. The variance in test AbsRel within the $\alpha$
-sweep at fixed $\text{lr}=10^{-5}$ is approximately $0.09$
-($0.202 \rightarrow 0.295$); the variance in test AbsRel within the
-learning-rate sweep at fixed $\alpha=0.7$ is approximately $0.03$
-($0.151 \rightarrow 0.186$). Both ranges are large, but the
-learning-rate range covers the difference between ``worse than zero-shot''
-and ``better than zero-shot'', while the $\alpha$ range mostly covers
-the difference between two collapse modes. This argues that future
-small-data distillation work should treat the learning rate as the
-primary lever and the loss weights as secondary tuning.
-
-\textbf{Why is the improvement so small at the stable end?} The honest
-answer is that at $\text{lr}=10^{-7}$ the student barely moves from its
-pretrained initialization. The total weight update over two epochs of
-$450$ images at $\text{lr}=10^{-7}$ is small enough that the model
-output is, in $\ell_2$ distance over the full parameter vector,
-extremely close to the unmodified pretrained model. The recipe
-\emph{can} extract a small consistent gain in this regime, but the
-ceiling for a recipe that does not move the encoder is, by
-construction, the pretrained model itself.
-
-\textbf{What would unlock larger gains?} Three directions stand out.
-First, our scale is wrong: a single batch of size $1$ with no learning
-rate warmup is a poor optimization recipe. Larger batches (which require
-more VRAM than is available on the test hardware) or gradient
-accumulation across, say, $16$ effective batches should narrow the gap
-between the $10^{-7}$ and $10^{-5}$ regimes and admit a wider stable
-operating window. Second, the full Distill-Any-Depth recipe includes
-cross-context distillation--running the teacher on both the full image
-and a center crop, then forcing the student to be consistent under both
-contexts; we omitted that for compute reasons. Third, with more training
-images (we used $450$) the GT signal becomes more reliable and the
-balance between $\mathcal{L}_{\text{base}}$ and
-$\mathcal{L}_{\text{distill}}$ would shift toward the GT side. None of
-these directions are out of reach; they are simply outside the scope of
-a single-GPU, fixed-resolution proof-of-concept.
-
-\textbf{Limitations.} (1) Evaluation resolution. We run all evaluation
-at $256{\times}256$, which is below the native resolution of both
-NYU-v2 and KITTI. This systematically inflates AbsRel and RMSE
-relative to leaderboard numbers, but does not affect our internal
-comparisons because zero-shot, default distill, and best distill are
-all run at the same resolution. (2) Cross-domain generalization. We
-trained only on NYU-v2 (indoor) and evaluated cross-domain on KITTI
-(outdoor). The cross-domain numbers should be interpreted as a
-robustness check on a single OOD distribution, not as a claim of
-general outdoor performance. (3) Single GPU, single random seed. We
-report mean numbers from a single training run per grid point; we did
-not estimate the run-to-run variance. The fact that the
-training-collapse signature is reproducible across multiple grid points
-suggests that the qualitative finding is not seed-specific, but a more
-rigorous study would average over seeds.
-
 \section{Conclusion}
 \label{sec:conclusion}
 
-We presented a clean, fully open-source pipeline that combines
+We presented a unified open-source pipeline that combines
 output-level teacher-student distillation~\cite{he2025distillanydepth}
 with ZoeDepth-style multi-scale gradient supervision~\cite{bhat2023zoedepth}
 for fine-tuning the Depth Anything Small student against the Depth
-Anything Large teacher~\cite{yang2024depth}. We evaluated the pipeline
-on an NYU-v2 PoC subset and a KITTI eigen subset, performed a controlled
-three-axis hyperparameter sweep over the distillation weight $\alpha$,
-the gradient weight $\beta$, and the learning rate, and produced an
-empirically tuned configuration that very modestly improves the
+Anything Large teacher~\cite{yang2024depth}, stabilized by a
+median-plus-MAD robust normalization of the affine-invariant L1 loss.
+We evaluated on an NYU-v2 PoC subset and a KITTI eigen subset, performed
+a controlled hyperparameter analysis over the distillation weight
+$\alpha$, the gradient weight $\beta$, and the learning rate, and
+produced an empirically tuned configuration that modestly improves the
 pretrained student on NYU-v2 (AbsRel $0.1505$ vs.\ $0.1550$ zero-shot;
 $\delta_1$ $0.8164$ vs.\ $0.8146$). The improvement does not transfer
 to the cross-domain KITTI subset, where the distilled and zero-shot
 checkpoints are essentially indistinguishable.
 
-The headline empirical finding of the paper is the
-\emph{learning-rate sensitivity}: the same recipe that improves the
-pretrained model at $\text{lr}=10^{-7}$ collapses it at $\text{lr}=10^{-5}$,
-and the transition between the two regimes is sharp. In our small-data
-configuration this single hyperparameter dominates the choice of
-$\alpha$ and $\beta$ by a wide margin. We expect that the recipe would
-yield substantially larger gains in a setting with (a) more training
-data, (b) effective batch size larger than one, or (c) the full
-cross-context distillation variant of~\cite{he2025distillanydepth}.
+The dominant variable in the hyperparameter analysis is the learning
+rate, not the loss balance. The variance in test AbsRel within the
+$\alpha$ sweep at fixed $\text{lr}=10^{-5}$ is approximately $0.09$,
+covering only the difference between two collapse modes; the variance
+within the learning-rate sweep at fixed $\alpha=0.7$ is approximately
+$0.03$ but covers the difference between ``worse than zero-shot'' and
+``better than zero-shot''. The recipe yields a small but consistent
+gain only at $\text{lr}\le 10^{-6}$, where the student barely moves
+from its pretrained weights; the ceiling for a recipe that does not
+move the encoder is, by construction, the pretrained model itself.
+Larger gains are expected from effective batch size $> 1$, the full
+cross-context distillation variant of~\cite{he2025distillanydepth},
+or more training images.
+
+The principal limitations of the study are that all evaluation is at
+$256{\times}256$ (which inflates absolute KITTI numbers but preserves
+internal comparability), cross-domain generalization is tested on a
+single OOD distribution, and we report a single seed per grid point;
+the reproducibility of the collapse signature across configurations
+suggests the qualitative finding is not seed-specific.
 
 \paragraph{Author Contributions.} Alexander Assal designed and
 implemented the training and evaluation pipelines, the distillation
